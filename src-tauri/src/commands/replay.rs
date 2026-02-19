@@ -55,7 +55,7 @@ pub async fn toggle_replay_buffer(
         );
         ring.cleanup().map_err(|e| e.to_string())?;
 
-        let args = build_replay_command(&config, encoder, &source);
+        let args = build_replay_command(&config, encoder, &source).await;
 
         match FfmpegProcess::spawn(args).await {
             Ok(process) => {

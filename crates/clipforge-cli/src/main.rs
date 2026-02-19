@@ -120,7 +120,7 @@ async fn main() -> Result<()> {
                 PathBuf::from(format!("recording_{}.mkv", timestamp))
             });
 
-            let args = build_recording_command(&config, enc, &source, &output);
+            let args = build_recording_command(&config, enc, &source, &output).await;
             println!("Recording to: {}", output.display());
             println!("Encoder: {} | FPS: {} | Press Ctrl+C to stop", enc.name, fps);
 
@@ -148,7 +148,7 @@ async fn main() -> Result<()> {
             );
             ring.cleanup()?;
 
-            let args = build_replay_command(&config, enc, &source);
+            let args = build_replay_command(&config, enc, &source).await;
             println!("Replay buffer active ({} seconds)", seconds);
             println!("Press Ctrl+C to stop");
 

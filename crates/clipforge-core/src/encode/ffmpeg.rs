@@ -1,3 +1,4 @@
+use crate::audio::resolve_audio_source;
 use crate::capture::CaptureSource;
 use crate::config::{Config, Quality};
 use crate::encode::hw_probe::{EncoderInfo, HwAccelType};
@@ -152,7 +153,7 @@ impl FfmpegCommandBuilder {
 }
 
 /// Build a complete recording command
-pub fn build_recording_command(
+pub async fn build_recording_command(
     config: &Config,
     encoder: &EncoderInfo,
     source: &CaptureSource,
@@ -163,7 +164,10 @@ pub fn build_recording_command(
         .with_capture_source(source);
 
     if config.recording.audio_enabled {
-        builder = builder.with_audio(&config.recording.audio_source);
+        let audio_source = resolve_audio_source(&config.recording.audio_source)
+            .await
+            .unwrap_or_else(|_| config.recording.audio_source.clone());
+        builder = builder.with_audio(&audio_source);
     }
 
     builder = builder
@@ -175,7 +179,7 @@ pub fn build_recording_command(
 }
 
 /// Build a segmented recording command for replay buffer
-pub fn build_replay_command(
+pub async fn build_replay_command(
     config: &Config,
     encoder: &EncoderInfo,
     source: &CaptureSource,
@@ -185,7 +189,10 @@ pub fn build_replay_command(
         .with_capture_source(source);
 
     if config.recording.audio_enabled {
-        builder = builder.with_audio(&config.recording.audio_source);
+        let audio_source = resolve_audio_source(&config.recording.audio_source)
+            .await
+            .unwrap_or_else(|_| config.recording.audio_source.clone());
+        builder = builder.with_audio(&audio_source);
     }
 
     builder = builder

@@ -54,7 +54,7 @@ pub async fn start_recording(
     std::fs::create_dir_all(&config.paths.recordings_dir)
         .map_err(|e| e.to_string())?;
 
-    let args = build_recording_command(&config, encoder, &source, &output_path);
+    let args = build_recording_command(&config, encoder, &source, &output_path).await;
 
     info!(output = %output_path.display(), "starting recording");
 
