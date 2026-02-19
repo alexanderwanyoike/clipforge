@@ -1,0 +1,12 @@
+{
+  "identifier": "default",
+  "description": "Default capability for ClipForge",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "global-shortcut:default",
+    "dialog:default",
+    "notification:default",
+    "shell:default"
+  ]
+}

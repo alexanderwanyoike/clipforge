@@ -1,0 +1,460 @@
+:root {
+  --bg-primary: #0f0f13;
+  --bg-secondary: #1a1a24;
+  --bg-tertiary: #252533;
+  --text-primary: #e8e8f0;
+  --text-secondary: #9090a8;
+  --accent: #6c5ce7;
+  --accent-hover: #7c6df7;
+  --danger: #e74c3c;
+  --success: #2ecc71;
+  --warning: #f39c12;
+  --border: #2a2a3a;
+  --radius: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+}
+
+#root {
+  height: 100vh;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 200px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  flex-shrink: 0;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 700;
+  padding: 0 20px 20px;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+
+.nav-link {
+  display: block;
+  padding: 10px 20px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.nav-link.active {
+  color: var(--accent);
+  background: rgba(108, 92, 231, 0.1);
+  border-left-color: var(--accent);
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* Page styles */
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+/* Record button */
+.record-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 24px;
+}
+
+.record-btn {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid var(--danger);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.record-btn:hover {
+  background: rgba(231, 76, 60, 0.15);
+  transform: scale(1.05);
+}
+
+.record-btn.recording {
+  border-color: var(--danger);
+  background: rgba(231, 76, 60, 0.2);
+  animation: pulse 1.5s infinite;
+}
+
+.record-btn-inner {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--danger);
+  transition: all 0.2s;
+}
+
+.record-btn.recording .record-btn-inner {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+  50% { box-shadow: 0 0 0 16px rgba(231, 76, 60, 0); }
+}
+
+.record-status {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.record-timer {
+  font-size: 40px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--danger);
+}
+
+.record-file {
+  font-size: 12px;
+  color: var(--text-secondary);
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Replay toggle */
+.replay-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  margin-top: auto;
+}
+
+.toggle {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--bg-tertiary);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.toggle.active {
+  background: var(--accent);
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+}
+
+.toggle.active::after {
+  transform: translateX(20px);
+}
+
+.replay-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.replay-save-btn {
+  margin-left: auto;
+  padding: 6px 14px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.replay-save-btn:hover {
+  background: var(--accent-hover);
+}
+
+.replay-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Library */
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.recording-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: border-color 0.15s;
+  cursor: pointer;
+}
+
+.recording-card:hover {
+  border-color: var(--accent);
+}
+
+.card-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-info {
+  padding: 12px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 8px;
+}
+
+/* Search */
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+}
+
+/* Export */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.preset-card {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.preset-card:hover {
+  border-color: var(--accent);
+}
+
+.preset-card.selected {
+  border-color: var(--accent);
+  background: rgba(108, 92, 231, 0.1);
+}
+
+.preset-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.preset-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Settings */
+.settings-section {
+  margin-bottom: 28px;
+}
+
+.settings-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-label {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.setting-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+select, input[type="number"], input[type="text"] {
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+select:focus, input:focus {
+  border-color: var(--accent);
+}
+
+/* Button */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-state p {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+/* Progress bar */
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s;
+  border-radius: 3px;
+}
+
+/* Doctor */
+.check-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.check-pass { color: var(--success); }
+.check-warn { color: var(--warning); }
+.check-fail { color: var(--danger); }

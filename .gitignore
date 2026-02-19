@@ -1,0 +1,30 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Node
+ui/node_modules/
+ui/dist/
+
+# Tauri
+src-tauri/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# ClipForge runtime
+*.mkv
+*.mp4
+segments.csv
