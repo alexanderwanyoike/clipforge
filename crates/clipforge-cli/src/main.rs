@@ -127,8 +127,7 @@ async fn main() -> Result<()> {
 
             let source = create_capture_source(&config).await?;
             let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
-            let output =
-                out.unwrap_or_else(|| PathBuf::from(format!("recording_{}.mkv", timestamp)));
+            let output = out.unwrap_or_else(|| PathBuf::from(format!("recording_{timestamp}.mkv")));
 
             let args = build_recording_command(&config, enc, &source, &output).await;
             println!("Recording to: {}", output.display());
@@ -162,7 +161,7 @@ async fn main() -> Result<()> {
             ring.cleanup()?;
 
             let args = build_replay_command(&config, enc, &source).await;
-            println!("Replay buffer active ({} seconds)", seconds);
+            println!("Replay buffer active ({seconds} seconds)");
             println!("Press Ctrl+C to stop");
 
             let mut process = FfmpegProcess::spawn(args).await?;
@@ -185,10 +184,10 @@ async fn main() -> Result<()> {
                 config
                     .paths
                     .replays_dir
-                    .join(format!("replay_{}.mkv", timestamp))
+                    .join(format!("replay_{timestamp}.mkv"))
             });
 
-            println!("Saving last {} seconds...", seconds);
+            println!("Saving last {seconds} seconds...");
             let path = save_replay(&ring, seconds, &output).await?;
             println!("Saved: {}", path.display());
         }
@@ -206,8 +205,7 @@ async fn main() -> Result<()> {
                 "trailer" => ExportPreset::trailer(),
                 "high_quality" => ExportPreset::high_quality(),
                 _ => anyhow::bail!(
-                    "Unknown preset: {}. Use: shorts, youtube, trailer, high_quality",
-                    preset
+                    "Unknown preset: {preset}. Use: shorts, youtube, trailer, high_quality"
                 ),
             };
 
@@ -224,7 +222,7 @@ async fn main() -> Result<()> {
                 trim_end,
             };
 
-            println!("Exporting with '{}' preset...", preset);
+            println!("Exporting with '{preset}' preset...");
             ExportPipeline::run(&job).await?;
             println!("Exported: {}", output.display());
         }
@@ -249,7 +247,7 @@ async fn main() -> Result<()> {
                         println!("  [{}] {}", kind, source.name);
                     }
                 }
-                Err(e) => println!("  Error: {}", e),
+                Err(e) => println!("  Error: {e}"),
             }
         }
 
@@ -264,7 +262,7 @@ async fn main() -> Result<()> {
                 };
                 println!("{} {}: {}", icon, check.name, check.detail);
                 if let Some(ref rec) = check.recommendation {
-                    println!("       -> {}", rec);
+                    println!("       -> {rec}");
                 }
             }
         }

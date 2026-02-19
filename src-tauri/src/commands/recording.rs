@@ -178,7 +178,7 @@ async fn index_recording(
 
     // Generate thumbnail
     let _ = std::fs::create_dir_all(thumb_dir);
-    let thumb_path = thumb_dir.join(format!("{}.jpg", id));
+    let thumb_path = thumb_dir.join(format!("{id}.jpg"));
     let _ = generate_thumbnail(path, &thumb_path).await;
 
     let recording = Recording {

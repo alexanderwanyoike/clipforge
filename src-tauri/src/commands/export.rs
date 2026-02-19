@@ -23,7 +23,7 @@ pub async fn start_export(
     let preset = ExportPreset::all()
         .into_iter()
         .find(|p| p.id == preset_id)
-        .ok_or_else(|| format!("Unknown preset: {}", preset_id))?;
+        .ok_or_else(|| format!("Unknown preset: {preset_id}"))?;
 
     let config = state.config.read().await;
 

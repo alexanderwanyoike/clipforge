@@ -83,10 +83,10 @@ async fn check_display_server() -> DiagnosticCheck {
     let wayland = std::env::var("WAYLAND_DISPLAY").ok();
 
     let (status, detail, rec) = match (&display, &wayland) {
-        (Some(d), _) => (CheckStatus::Pass, format!("X11 (DISPLAY={})", d), None),
+        (Some(d), _) => (CheckStatus::Pass, format!("X11 (DISPLAY={d})"), None),
         (None, Some(w)) => (
             CheckStatus::Warn,
-            format!("Wayland only (WAYLAND_DISPLAY={})", w),
+            format!("Wayland only (WAYLAND_DISPLAY={w})"),
             Some("X11 capture is the primary path. Consider running under XWayland.".to_string()),
         ),
         _ => (
@@ -146,7 +146,7 @@ async fn check_vaapi() -> DiagnosticCheck {
                 DiagnosticCheck {
                     name: "VA-API".to_string(),
                     status: CheckStatus::Warn,
-                    detail: format!("VA-API device found but no H.264 profiles ({})", device),
+                    detail: format!("VA-API device found but no H.264 profiles ({device})"),
                     recommendation: Some(
                         "Install VA-API drivers: sudo apt install intel-media-va-driver-non-free"
                             .to_string(),

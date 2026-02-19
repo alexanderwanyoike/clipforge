@@ -23,13 +23,13 @@ impl ExportPipeline {
 
         // Input with optional seek
         if let Some(start) = job.trim_start {
-            args.extend(["-ss".to_string(), format!("{:.3}", start)]);
+            args.extend(["-ss".to_string(), format!("{start:.3}")]);
         }
         args.extend(["-i".to_string(), job.input.to_string_lossy().to_string()]);
 
         if let Some(end) = job.trim_end {
             let duration = end - job.trim_start.unwrap_or(0.0);
-            args.extend(["-t".to_string(), format!("{:.3}", duration)]);
+            args.extend(["-t".to_string(), format!("{duration:.3}")]);
         }
 
         // Build filter chain
@@ -37,17 +37,17 @@ impl ExportPipeline {
 
         // Crop to aspect ratio
         if let Some((aw, ah)) = job.preset.crop_aspect {
-            filters.push(format!("crop=ih*{}/{}:ih", aw, ah));
+            filters.push(format!("crop=ih*{aw}/{ah}:ih"));
         }
 
         // Scale to target resolution
         if let Some((w, h)) = job.preset.resolution {
-            filters.push(format!("scale={}:{}:flags=lanczos", w, h));
+            filters.push(format!("scale={w}:{h}:flags=lanczos"));
         }
 
         // FPS
         if let Some(fps) = job.preset.fps {
-            filters.push(format!("fps={}", fps));
+            filters.push(format!("fps={fps}"));
         }
 
         if !filters.is_empty() {

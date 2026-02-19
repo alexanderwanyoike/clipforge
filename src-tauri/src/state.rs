@@ -31,6 +31,7 @@ pub enum RecordingStatus {
     Stopping,
 }
 
+#[derive(Default)]
 pub struct ReplayState {
     pub process: Option<FfmpegProcess>,
     pub ring: Option<ReplayRing>,
@@ -44,16 +45,6 @@ impl Default for RecorderState {
             status: RecordingStatus::Idle,
             output_path: None,
             start_time: None,
-        }
-    }
-}
-
-impl Default for ReplayState {
-    fn default() -> Self {
-        Self {
-            process: None,
-            ring: None,
-            active: false,
         }
     }
 }

@@ -129,7 +129,7 @@ pub async fn resolve_audio_source(source: &str) -> Result<String> {
         return Ok("default".to_string());
     }
 
-    let monitor = format!("{}.monitor", sink);
+    let monitor = format!("{sink}.monitor");
     debug!(sink = %sink, monitor = %monitor, "resolved default audio source");
     Ok(monitor)
 }

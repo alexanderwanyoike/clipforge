@@ -9,6 +9,12 @@ pub struct FfmpegCommandBuilder {
     args: Vec<String>,
 }
 
+impl Default for FfmpegCommandBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FfmpegCommandBuilder {
     pub fn new() -> Self {
         Self {

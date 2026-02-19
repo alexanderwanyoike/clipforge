@@ -86,7 +86,7 @@ pub async fn probe_encoders() -> Vec<EncoderInfo> {
 async fn find_vaapi_devices() -> Vec<String> {
     let mut devices = Vec::new();
     for i in 128..136 {
-        let path = format!("/dev/dri/renderD{}", i);
+        let path = format!("/dev/dri/renderD{i}");
         if tokio::fs::metadata(&path).await.is_ok() {
             devices.push(path);
         }

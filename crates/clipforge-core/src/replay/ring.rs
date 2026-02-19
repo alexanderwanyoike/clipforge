@@ -153,7 +153,7 @@ mod tests {
         // Create 5 segment files and CSV
         let mut csv = String::new();
         for i in 0..5 {
-            let name = format!("seg_{:03}.mkv", i);
+            let name = format!("seg_{i:03}.mkv");
             std::fs::write(tmp.path().join(&name), "data").unwrap();
             csv.push_str(&format!("{},{}.0,{}.0\n", name, i * 3, (i + 1) * 3));
         }
@@ -172,7 +172,7 @@ mod tests {
         // Only 2 segments
         let mut csv = String::new();
         for i in 0..2 {
-            let name = format!("seg_{:03}.mkv", i);
+            let name = format!("seg_{i:03}.mkv");
             std::fs::write(tmp.path().join(&name), "data").unwrap();
             csv.push_str(&format!("{},{}.0,{}.0\n", name, i * 3, (i + 1) * 3));
         }

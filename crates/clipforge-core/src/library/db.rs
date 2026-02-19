@@ -382,7 +382,7 @@ mod tests {
 
         for i in 0..5 {
             let mut rec = sample_recording(&format!("r{i}"), &format!("Recording {i}"), None);
-            rec.created_at = format!("2025-01-01T00:00:{:02}Z", i);
+            rec.created_at = format!("2025-01-01T00:00:{i:02}Z");
             lib.insert(&rec).unwrap();
         }
 

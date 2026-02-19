@@ -27,6 +27,7 @@ pub struct FfmpegProcess {
     child: Child,
     state_tx: watch::Sender<ProcessState>,
     state_rx: watch::Receiver<ProcessState>,
+    #[allow(dead_code)]
     progress_tx: watch::Sender<FfmpegProgress>,
     progress_rx: watch::Receiver<FfmpegProgress>,
 }
@@ -238,6 +239,24 @@ pub async fn run_ffmpeg(args: &[&str]) -> Result<String> {
     }
 }
 
+/// Run ffprobe and return stdout
+pub async fn run_ffprobe(args: &[&str]) -> Result<String> {
+    let output = Command::new("ffprobe")
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
+        .map_err(Error::Io)?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        Err(Error::FfmpegFailed(stderr))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -265,23 +284,5 @@ mod tests {
         assert_eq!(progress.frame, 500);
         assert!((progress.fps - 60.0).abs() < 0.1);
         assert_eq!(progress.time, "00:00:08.33");
-    }
-}
-
-/// Run ffprobe and return stdout
-pub async fn run_ffprobe(args: &[&str]) -> Result<String> {
-    let output = Command::new("ffprobe")
-        .args(args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await
-        .map_err(Error::Io)?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        Err(Error::FfmpegFailed(stderr))
     }
 }
