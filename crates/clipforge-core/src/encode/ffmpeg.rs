@@ -114,9 +114,10 @@ impl FfmpegCommandBuilder {
 
     /// Set output to a file
     pub fn with_output(mut self, path: &Path, container: &str) -> Self {
+        let ffmpeg_format = container_to_ffmpeg_format(container);
         self.args.extend([
             "-f".to_string(),
-            container.to_string(),
+            ffmpeg_format.to_string(),
             path.to_string_lossy().to_string(),
         ]);
         self
@@ -216,5 +217,18 @@ fn quality_to_crf(quality: &Quality) -> u32 {
         Quality::High => 18,
         Quality::Lossless => 0,
         Quality::Custom { qp } => *qp,
+    }
+}
+
+/// Map user-facing container names to FFmpeg format names
+fn container_to_ffmpeg_format(container: &str) -> &str {
+    match container {
+        "mkv" => "matroska",
+        "mp4" => "mp4",
+        "webm" => "webm",
+        "avi" => "avi",
+        "mov" => "mov",
+        "ts" => "mpegts",
+        other => other,
     }
 }

@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default capability for ClipForge","local":true,"windows":["main"],"permissions":["core:default","global-shortcut:default","dialog:default","notification:default","shell:default"]}}
+{"default":{"identifier":"default","description":"Default capability for ClipForge","local":true,"windows":["main"],"permissions":["core:default","global-shortcut:default","dialog:default","notification:default","shell:default","fs:default","fs:allow-read","fs:read-all"]}}

@@ -169,7 +169,7 @@ async fn main() -> Result<()> {
 
             let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
             let output = out.unwrap_or_else(|| {
-                config.paths.recordings_dir.join(format!("replay_{}.mkv", timestamp))
+                config.paths.replays_dir.join(format!("replay_{}.mkv", timestamp))
             });
 
             println!("Saving last {} seconds...", seconds);

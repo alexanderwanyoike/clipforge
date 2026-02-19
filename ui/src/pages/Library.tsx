@@ -1,4 +1,5 @@
 import { createSignal, onMount, For, Show } from "solid-js";
+import { useNavigate } from "@solidjs/router";
 import {
   getRecordings,
   searchRecordings,
@@ -21,6 +22,7 @@ function formatSize(bytes: number): string {
 }
 
 export default function LibraryPage() {
+  const navigate = useNavigate();
   const [recordings, setRecordings] = createSignal<Recording[]>([]);
   const [query, setQuery] = createSignal("");
 
@@ -93,6 +95,26 @@ export default function LibraryPage() {
                     <span>{formatDuration(rec.duration)}</span>
                     <span>{rec.resolution}</span>
                     <span>{formatSize(rec.file_size)}</span>
+                  </div>
+                  <div class="card-actions">
+                    <button
+                      class="btn btn-primary btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/export?file=${encodeURIComponent(rec.file_path)}`);
+                      }}
+                    >
+                      Export
+                    </button>
+                    <button
+                      class="btn btn-danger btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(rec.id);
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>

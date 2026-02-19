@@ -70,6 +70,7 @@ pub struct HotkeyConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PathConfig {
     pub recordings_dir: PathBuf,
+    pub replays_dir: PathBuf,
     pub replay_cache_dir: PathBuf,
     pub thumbnails_dir: PathBuf,
 }
@@ -84,11 +85,24 @@ pub struct UiConfig {
 
 impl Default for Config {
     fn default() -> Self {
-        let dirs = directories::ProjectDirs::from("com", "clipforge", "ClipForge")
-            .expect("failed to determine project directories");
+        // Use ~/Videos/ClipForge/ as the base for user-facing files
+        let base_dir = directories::UserDirs::new()
+            .and_then(|u| u.video_dir().map(|v| v.to_path_buf()))
+            .unwrap_or_else(|| {
+                directories::UserDirs::new()
+                    .map(|u| u.home_dir().join("Videos"))
+                    .unwrap_or_else(|| PathBuf::from("~/Videos"))
+            })
+            .join("ClipForge");
 
-        let data_dir = dirs.data_dir().to_path_buf();
-        let cache_dir = dirs.cache_dir().to_path_buf();
+        // Thumbnails go in ~/.cache/clipforge (not user-facing)
+        let cache_dir = directories::ProjectDirs::from("com", "clipforge", "ClipForge")
+            .map(|d| d.cache_dir().to_path_buf())
+            .unwrap_or_else(|| {
+                directories::UserDirs::new()
+                    .map(|u| u.home_dir().join(".cache").join("clipforge"))
+                    .unwrap_or_else(|| PathBuf::from("/tmp/clipforge/cache"))
+            });
 
         // Prefer /dev/shm for replay cache if available and has space
         let replay_cache_dir = if Path::new("/dev/shm").exists() {
@@ -97,9 +111,10 @@ impl Default for Config {
             cache_dir.join("replay")
         };
 
-        let recordings_dir = data_dir.join("recordings");
-        let thumbnails_dir = data_dir.join("thumbnails");
-        let exports_dir = data_dir.join("exports");
+        let recordings_dir = base_dir.join("recordings");
+        let replays_dir = base_dir.join("replays");
+        let thumbnails_dir = cache_dir.join("thumbnails");
+        let exports_dir = base_dir.join("exports");
 
         Self {
             recording: RecordingConfig {
@@ -129,6 +144,7 @@ impl Default for Config {
             },
             paths: PathConfig {
                 recordings_dir,
+                replays_dir,
                 replay_cache_dir,
                 thumbnails_dir,
             },
@@ -175,6 +191,7 @@ impl Config {
     /// Ensure all configured directories exist
     pub fn ensure_dirs(&self) -> Result<()> {
         std::fs::create_dir_all(&self.paths.recordings_dir).map_err(Error::Io)?;
+        std::fs::create_dir_all(&self.paths.replays_dir).map_err(Error::Io)?;
         std::fs::create_dir_all(&self.paths.replay_cache_dir).map_err(Error::Io)?;
         std::fs::create_dir_all(&self.paths.thumbnails_dir).map_err(Error::Io)?;
         std::fs::create_dir_all(&self.export.output_dir).map_err(Error::Io)?;

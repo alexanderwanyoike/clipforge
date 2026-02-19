@@ -93,9 +93,9 @@ pub async fn save_replay_clip(
     let duration = seconds.unwrap_or(30);
     let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
     let filename = format!("replay_{}.mkv", timestamp);
-    let output_path = config.paths.recordings_dir.join(&filename);
+    let output_path = config.paths.replays_dir.join(&filename);
 
-    std::fs::create_dir_all(&config.paths.recordings_dir)
+    std::fs::create_dir_all(&config.paths.replays_dir)
         .map_err(|e| e.to_string())?;
 
     let result = save_replay(ring, duration, &output_path)

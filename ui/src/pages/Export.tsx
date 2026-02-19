@@ -1,4 +1,5 @@
 import { createSignal, onMount, For, Show } from "solid-js";
+import { useSearchParams } from "@solidjs/router";
 import {
   getExportPresets,
   startExport,
@@ -7,9 +8,13 @@ import {
 } from "../lib/tauri";
 
 export default function ExportPage() {
+  const [searchParams] = useSearchParams();
   const [presets, setPresets] = createSignal<ExportPreset[]>([]);
   const [selectedPreset, setSelectedPreset] = createSignal<string>("");
-  const [inputFile, setInputFile] = createSignal("");
+  const fileParam = searchParams.file;
+  const [inputFile, setInputFile] = createSignal(
+    typeof fileParam === "string" ? fileParam : ""
+  );
   const [trimStart, setTrimStart] = createSignal<number | undefined>();
   const [trimEnd, setTrimEnd] = createSignal<number | undefined>();
   const [exporting, setExporting] = createSignal(false);

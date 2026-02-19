@@ -7,6 +7,9 @@
     "global-shortcut:default",
     "dialog:default",
     "notification:default",
-    "shell:default"
+    "shell:default",
+    "fs:default",
+    "fs:allow-read",
+    "fs:read-all"
   ]
 }
