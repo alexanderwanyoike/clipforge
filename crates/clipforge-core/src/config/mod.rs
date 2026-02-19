@@ -159,6 +159,19 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Create a Config with paths rooted at a custom base (for testing)
+    #[cfg(test)]
+    fn with_base_dir(base_dir: PathBuf, cache_dir: PathBuf) -> Self {
+        let replay_cache_dir = cache_dir.join("replay");
+        let mut config = Self::default();
+        config.paths.recordings_dir = base_dir.join("recordings");
+        config.paths.replays_dir = base_dir.join("replays");
+        config.paths.replay_cache_dir = replay_cache_dir;
+        config.paths.thumbnails_dir = cache_dir.join("thumbnails");
+        config.export.output_dir = base_dir.join("exports");
+        config
+    }
+
     pub fn config_path() -> Result<PathBuf> {
         let dirs = directories::ProjectDirs::from("com", "clipforge", "ClipForge")
             .ok_or_else(|| Error::Config("cannot determine config directory".into()))?;
@@ -196,5 +209,125 @@ impl Config {
         std::fs::create_dir_all(&self.paths.thumbnails_dir).map_err(Error::Io)?;
         std::fs::create_dir_all(&self.export.output_dir).map_err(Error::Io)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_recordings_dir_contains_clipforge_recordings() {
+        let config = Config::default();
+        let path = config.paths.recordings_dir.to_string_lossy();
+        assert!(path.contains("ClipForge/recordings"), "got: {path}");
+    }
+
+    #[test]
+    fn default_replays_dir_contains_clipforge_replays() {
+        let config = Config::default();
+        let path = config.paths.replays_dir.to_string_lossy();
+        assert!(path.contains("ClipForge/replays"), "got: {path}");
+    }
+
+    #[test]
+    fn default_exports_dir_contains_clipforge_exports() {
+        let config = Config::default();
+        let path = config.export.output_dir.to_string_lossy();
+        assert!(path.contains("ClipForge/exports"), "got: {path}");
+    }
+
+    #[test]
+    fn replays_dir_differs_from_recordings_dir() {
+        let config = Config::default();
+        assert_ne!(config.paths.recordings_dir, config.paths.replays_dir);
+    }
+
+    #[test]
+    fn replay_cache_uses_dev_shm_on_linux() {
+        let config = Config::default();
+        if Path::new("/dev/shm").exists() {
+            assert!(
+                config.paths.replay_cache_dir.starts_with("/dev/shm"),
+                "expected /dev/shm prefix, got: {:?}",
+                config.paths.replay_cache_dir
+            );
+        }
+    }
+
+    #[test]
+    fn thumbnails_in_cache_not_videos() {
+        let config = Config::default();
+        let thumb = config.paths.thumbnails_dir.to_string_lossy();
+        assert!(
+            thumb.contains("cache") || thumb.contains(".cache"),
+            "thumbnails should be in cache dir, got: {thumb}"
+        );
+        assert!(!thumb.contains("Videos"), "thumbnails should not be under ~/Videos");
+    }
+
+    #[test]
+    fn default_recording_settings() {
+        let config = Config::default();
+        assert_eq!(config.recording.fps, 60);
+        assert_eq!(config.recording.container, "mkv");
+        assert!(config.recording.audio_enabled);
+    }
+
+    #[test]
+    fn default_replay_settings() {
+        let config = Config::default();
+        assert!(!config.replay.enabled);
+        assert_eq!(config.replay.duration_secs, 120);
+        assert_eq!(config.replay.segment_secs, 3);
+        assert_eq!(config.replay.max_segments, 40);
+    }
+
+    #[test]
+    fn serde_json_roundtrip() {
+        let config = Config::default();
+        let json = serde_json::to_string(&config).unwrap();
+        let deserialized: Config = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.recording.fps, config.recording.fps);
+        assert_eq!(deserialized.replay.duration_secs, config.replay.duration_secs);
+        assert_eq!(deserialized.paths.recordings_dir, config.paths.recordings_dir);
+        assert_eq!(deserialized.paths.replays_dir, config.paths.replays_dir);
+        assert_eq!(deserialized.export.output_dir, config.export.output_dir);
+        assert_eq!(deserialized.ui.theme, config.ui.theme);
+    }
+
+    #[test]
+    fn ensure_dirs_creates_all_directories() {
+        let tmp = tempfile::tempdir().unwrap();
+        let base = tmp.path().join("ClipForge");
+        let cache = tmp.path().join("cache");
+        let config = Config::with_base_dir(base.clone(), cache.clone());
+
+        config.ensure_dirs().unwrap();
+
+        assert!(config.paths.recordings_dir.exists());
+        assert!(config.paths.replays_dir.exists());
+        assert!(config.paths.replay_cache_dir.exists());
+        assert!(config.paths.thumbnails_dir.exists());
+        assert!(config.export.output_dir.exists());
+    }
+
+    #[test]
+    fn ensure_dirs_is_idempotent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let base = tmp.path().join("ClipForge");
+        let cache = tmp.path().join("cache");
+        let config = Config::with_base_dir(base, cache);
+
+        config.ensure_dirs().unwrap();
+        config.ensure_dirs().unwrap(); // second call should not fail
+
+        assert!(config.paths.recordings_dir.exists());
+    }
+
+    #[test]
+    fn default_quality_is_high() {
+        let config = Config::default();
+        assert!(matches!(config.recording.quality, Quality::High));
     }
 }

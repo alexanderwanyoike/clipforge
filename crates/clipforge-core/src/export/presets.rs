@@ -79,3 +79,63 @@ impl ExportPreset {
         vec![Self::shorts(), Self::youtube(), Self::trailer(), Self::high_quality()]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shorts_preset() {
+        let p = ExportPreset::shorts();
+        assert_eq!(p.resolution, Some((1080, 1920)));
+        assert_eq!(p.crop_aspect, Some((9, 16)));
+        assert!(p.loudnorm);
+        assert_eq!(p.container, "mp4");
+    }
+
+    #[test]
+    fn youtube_preset() {
+        let p = ExportPreset::youtube();
+        assert_eq!(p.resolution, Some((1920, 1080)));
+        assert!(p.crop_aspect.is_none());
+        assert!(p.loudnorm);
+    }
+
+    #[test]
+    fn trailer_preset() {
+        let p = ExportPreset::trailer();
+        assert_eq!(p.resolution, Some((1920, 1080)));
+        assert_eq!(p.bitrate.as_deref(), Some("15M"));
+    }
+
+    #[test]
+    fn high_quality_preset() {
+        let p = ExportPreset::high_quality();
+        assert!(p.resolution.is_none());
+        assert!(!p.loudnorm);
+    }
+
+    #[test]
+    fn all_returns_four_presets_with_expected_ids() {
+        let presets = ExportPreset::all();
+        assert_eq!(presets.len(), 4);
+        let ids: Vec<&str> = presets.iter().map(|p| p.id.as_str()).collect();
+        assert!(ids.contains(&"shorts"));
+        assert!(ids.contains(&"youtube"));
+        assert!(ids.contains(&"trailer"));
+        assert!(ids.contains(&"high_quality"));
+    }
+
+    #[test]
+    fn serde_roundtrip_all_presets() {
+        for preset in ExportPreset::all() {
+            let json = serde_json::to_string(&preset).unwrap();
+            let deserialized: ExportPreset = serde_json::from_str(&json).unwrap();
+            assert_eq!(deserialized.id, preset.id);
+            assert_eq!(deserialized.resolution, preset.resolution);
+            assert_eq!(deserialized.loudnorm, preset.loudnorm);
+            assert_eq!(deserialized.crop_aspect, preset.crop_aspect);
+            assert_eq!(deserialized.container, preset.container);
+        }
+    }
+}

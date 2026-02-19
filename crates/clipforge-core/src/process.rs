@@ -240,6 +240,36 @@ pub async fn run_ffmpeg(args: &[&str]) -> Result<String> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_progress_standard_line() {
+        let line = "frame=  123 fps= 60.0 q=20.0 size=    1234kB time=00:00:02.05 speed=1.00x";
+        let progress = parse_progress(line).expect("should parse");
+        assert_eq!(progress.frame, 123);
+        assert_eq!(progress.time, "00:00:02.05");
+        assert_eq!(progress.speed, "1.00x");
+    }
+
+    #[test]
+    fn parse_progress_non_progress_line_returns_none() {
+        assert!(parse_progress("Input #0, matroska,webm").is_none());
+        assert!(parse_progress("Stream #0:0: Video").is_none());
+        assert!(parse_progress("").is_none());
+    }
+
+    #[test]
+    fn parse_progress_compact_format() {
+        let line = "frame=500 fps=60 q=20.0 size=5000kB time=00:00:08.33 speed=1.02x";
+        let progress = parse_progress(line).expect("should parse");
+        assert_eq!(progress.frame, 500);
+        assert!((progress.fps - 60.0).abs() < 0.1);
+        assert_eq!(progress.time, "00:00:08.33");
+    }
+}
+
 /// Run ffprobe and return stdout
 pub async fn run_ffprobe(args: &[&str]) -> Result<String> {
     let output = Command::new("ffprobe")

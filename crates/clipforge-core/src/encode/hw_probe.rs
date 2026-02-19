@@ -186,3 +186,52 @@ pub fn select_best_encoder(encoders: &[EncoderInfo]) -> &EncoderInfo {
         .find(|e| e.available)
         .expect("at least software encoder should be available")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_encoder(name: &str, hw: HwAccelType, available: bool) -> EncoderInfo {
+        EncoderInfo {
+            name: name.to_string(),
+            hw_accel: hw,
+            available,
+            device: None,
+        }
+    }
+
+    #[test]
+    fn select_best_prefers_first_available() {
+        let encoders = vec![
+            make_encoder("h264_vaapi", HwAccelType::Vaapi, true),
+            make_encoder("libx264", HwAccelType::Software, true),
+        ];
+        let best = select_best_encoder(&encoders);
+        assert_eq!(best.name, "h264_vaapi");
+    }
+
+    #[test]
+    fn select_best_skips_unavailable() {
+        let encoders = vec![
+            make_encoder("h264_vaapi", HwAccelType::Vaapi, false),
+            make_encoder("h264_nvenc", HwAccelType::Nvenc, false),
+            make_encoder("libx264", HwAccelType::Software, true),
+        ];
+        let best = select_best_encoder(&encoders);
+        assert_eq!(best.name, "libx264");
+    }
+
+    #[test]
+    fn is_hardware_true_for_hw_types() {
+        assert!(make_encoder("vaapi", HwAccelType::Vaapi, true).is_hardware());
+        assert!(make_encoder("nvenc", HwAccelType::Nvenc, true).is_hardware());
+        assert!(make_encoder("qsv", HwAccelType::Qsv, true).is_hardware());
+        assert!(!make_encoder("sw", HwAccelType::Software, true).is_hardware());
+    }
+
+    #[test]
+    fn codec_name_returns_name() {
+        let enc = make_encoder("h264_vaapi", HwAccelType::Vaapi, true);
+        assert_eq!(enc.codec_name(), "h264_vaapi");
+    }
+}

@@ -232,3 +232,45 @@ fn container_to_ffmpeg_format(container: &str) -> &str {
         other => other,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn quality_to_qp_values() {
+        assert_eq!(quality_to_qp(&Quality::Low), 30);
+        assert_eq!(quality_to_qp(&Quality::Medium), 25);
+        assert_eq!(quality_to_qp(&Quality::High), 20);
+        assert_eq!(quality_to_qp(&Quality::Lossless), 0);
+        assert_eq!(quality_to_qp(&Quality::Custom { qp: 15 }), 15);
+    }
+
+    #[test]
+    fn quality_to_crf_values() {
+        assert_eq!(quality_to_crf(&Quality::Low), 28);
+        assert_eq!(quality_to_crf(&Quality::Medium), 23);
+        assert_eq!(quality_to_crf(&Quality::High), 18);
+        assert_eq!(quality_to_crf(&Quality::Lossless), 0);
+    }
+
+    #[test]
+    fn container_format_mapping() {
+        assert_eq!(container_to_ffmpeg_format("mkv"), "matroska");
+        assert_eq!(container_to_ffmpeg_format("mp4"), "mp4");
+        assert_eq!(container_to_ffmpeg_format("ts"), "mpegts");
+    }
+
+    #[test]
+    fn container_format_unknown_passthrough() {
+        assert_eq!(container_to_ffmpeg_format("flv"), "flv");
+        assert_eq!(container_to_ffmpeg_format("ogg"), "ogg");
+    }
+
+    #[test]
+    fn ffmpeg_command_builder_basic_structure() {
+        let builder = FfmpegCommandBuilder::new();
+        let args = builder.build();
+        assert_eq!(args, vec!["-y"]);
+    }
+}

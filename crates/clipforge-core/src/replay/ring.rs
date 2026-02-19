@@ -94,3 +94,117 @@ impl ReplayRing {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_sets_fields_correctly() {
+        let dir = PathBuf::from("/tmp/test_segments");
+        let ring = ReplayRing::new(&dir, 3, 40);
+        assert_eq!(ring.segment_dir, dir);
+        assert_eq!(ring.segment_list, dir.join("segments.csv"));
+        assert_eq!(ring.segment_time, 3);
+        assert_eq!(ring.max_segments, 40);
+    }
+
+    #[test]
+    fn parse_segments_no_file_returns_empty() {
+        let tmp = tempfile::tempdir().unwrap();
+        let ring = ReplayRing::new(tmp.path(), 3, 40);
+        // segment_list file doesn't exist
+        let segments = ring.parse_segments().unwrap();
+        assert!(segments.is_empty());
+    }
+
+    #[test]
+    fn parse_segments_parses_csv_correctly() {
+        let tmp = tempfile::tempdir().unwrap();
+        let ring = ReplayRing::new(tmp.path(), 3, 40);
+        let csv = "seg_000.mkv,0.000000,3.000000\nseg_001.mkv,3.000000,6.000000\nseg_002.mkv,6.000000,9.000000\n";
+        std::fs::write(&ring.segment_list, csv).unwrap();
+
+        let segments = ring.parse_segments().unwrap();
+        assert_eq!(segments.len(), 3);
+        assert_eq!(segments[0].filename, "seg_000.mkv");
+        assert!((segments[0].start_time - 0.0).abs() < 0.001);
+        assert!((segments[0].end_time - 3.0).abs() < 0.001);
+        assert_eq!(segments[2].filename, "seg_002.mkv");
+        assert!((segments[2].end_time - 9.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn parse_segments_skips_malformed_lines() {
+        let tmp = tempfile::tempdir().unwrap();
+        let ring = ReplayRing::new(tmp.path(), 3, 40);
+        let csv = "seg_000.mkv,0.0,3.0\nbadline\nseg_001.mkv,3.0,6.0\nonly,two\n";
+        std::fs::write(&ring.segment_list, csv).unwrap();
+
+        let segments = ring.parse_segments().unwrap();
+        assert_eq!(segments.len(), 2);
+    }
+
+    #[test]
+    fn get_last_n_seconds_selects_correct_count() {
+        let tmp = tempfile::tempdir().unwrap();
+        let ring = ReplayRing::new(tmp.path(), 3, 40);
+
+        // Create 5 segment files and CSV
+        let mut csv = String::new();
+        for i in 0..5 {
+            let name = format!("seg_{:03}.mkv", i);
+            std::fs::write(tmp.path().join(&name), "data").unwrap();
+            csv.push_str(&format!("{},{}.0,{}.0\n", name, i * 3, (i + 1) * 3));
+        }
+        std::fs::write(&ring.segment_list, &csv).unwrap();
+
+        // 9 seconds / 3 second segments = 3 segments
+        let paths = ring.get_last_n_seconds(9).unwrap();
+        assert_eq!(paths.len(), 3);
+    }
+
+    #[test]
+    fn get_last_n_seconds_caps_at_available() {
+        let tmp = tempfile::tempdir().unwrap();
+        let ring = ReplayRing::new(tmp.path(), 3, 40);
+
+        // Only 2 segments
+        let mut csv = String::new();
+        for i in 0..2 {
+            let name = format!("seg_{:03}.mkv", i);
+            std::fs::write(tmp.path().join(&name), "data").unwrap();
+            csv.push_str(&format!("{},{}.0,{}.0\n", name, i * 3, (i + 1) * 3));
+        }
+        std::fs::write(&ring.segment_list, &csv).unwrap();
+
+        // Request 30 seconds but only 2 segments exist
+        let paths = ring.get_last_n_seconds(30).unwrap();
+        assert_eq!(paths.len(), 2);
+    }
+
+    #[test]
+    fn get_last_n_seconds_no_segments_returns_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let ring = ReplayRing::new(tmp.path(), 3, 40);
+        // Empty CSV
+        std::fs::write(&ring.segment_list, "").unwrap();
+
+        let result = ring.get_last_n_seconds(9);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn cleanup_removes_and_recreates_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let seg_dir = tmp.path().join("segments");
+        std::fs::create_dir_all(&seg_dir).unwrap();
+        std::fs::write(seg_dir.join("old_file.mkv"), "old").unwrap();
+
+        let ring = ReplayRing::new(&seg_dir, 3, 40);
+        ring.cleanup().unwrap();
+
+        assert!(seg_dir.exists());
+        assert!(!seg_dir.join("old_file.mkv").exists());
+    }
+}

@@ -64,3 +64,34 @@ impl serde::Serialize for Error {
         serializer.serialize_str(&self.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_output_for_known_variants() {
+        assert_eq!(Error::FfmpegNotFound.to_string(), "FFmpeg not found in PATH");
+        assert_eq!(Error::NoEncoder.to_string(), "No suitable encoder found");
+        assert_eq!(Error::NoSegments.to_string(), "No segments available for replay save");
+        assert_eq!(
+            Error::Config("bad value".into()).to_string(),
+            "Config error: bad value"
+        );
+    }
+
+    #[test]
+    fn serialize_produces_quoted_string() {
+        let err = Error::FfmpegNotFound;
+        let json = serde_json::to_string(&err).unwrap();
+        assert_eq!(json, "\"FFmpeg not found in PATH\"");
+    }
+
+    #[test]
+    fn io_wraps_inner_error_message() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file missing");
+        let err = Error::Io(io_err);
+        let msg = err.to_string();
+        assert!(msg.contains("file missing"), "got: {msg}");
+    }
+}

@@ -114,3 +114,68 @@ impl ExportPipeline {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_job(preset: ExportPreset, trim_start: Option<f64>, trim_end: Option<f64>) -> ExportJob {
+        ExportJob {
+            input: PathBuf::from("/tmp/input.mkv"),
+            output: PathBuf::from("/tmp/output.mp4"),
+            preset,
+            trim_start,
+            trim_end,
+        }
+    }
+
+    #[test]
+    fn basic_args_structure() {
+        let job = make_job(ExportPreset::high_quality(), None, None);
+        let args = ExportPipeline::build_args(&job);
+        assert_eq!(args[0], "-y");
+        assert!(args.contains(&"-i".to_string()));
+        assert!(args.contains(&"/tmp/input.mkv".to_string()));
+        assert!(args.contains(&"/tmp/output.mp4".to_string()));
+        assert!(args.contains(&"-c:v".to_string()));
+    }
+
+    #[test]
+    fn trim_adds_ss_and_duration() {
+        let job = make_job(ExportPreset::high_quality(), Some(10.0), Some(25.0));
+        let args = ExportPipeline::build_args(&job);
+        assert!(args.contains(&"-ss".to_string()));
+        assert!(args.contains(&"-t".to_string()));
+        // duration = 25 - 10 = 15
+        let t_idx = args.iter().position(|a| a == "-t").unwrap();
+        let duration: f64 = args[t_idx + 1].parse().unwrap();
+        assert!((duration - 15.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn shorts_preset_produces_crop_and_scale() {
+        let job = make_job(ExportPreset::shorts(), None, None);
+        let args = ExportPipeline::build_args(&job);
+        assert!(args.contains(&"-vf".to_string()));
+        let vf_idx = args.iter().position(|a| a == "-vf").unwrap();
+        let filter = &args[vf_idx + 1];
+        assert!(filter.contains("crop="), "expected crop filter, got: {filter}");
+        assert!(filter.contains("scale="), "expected scale filter, got: {filter}");
+    }
+
+    #[test]
+    fn youtube_preset_produces_loudnorm() {
+        let job = make_job(ExportPreset::youtube(), None, None);
+        let args = ExportPipeline::build_args(&job);
+        assert!(args.contains(&"-af".to_string()));
+        let af_idx = args.iter().position(|a| a == "-af").unwrap();
+        assert!(args[af_idx + 1].contains("loudnorm"));
+    }
+
+    #[test]
+    fn high_quality_no_loudnorm() {
+        let job = make_job(ExportPreset::high_quality(), None, None);
+        let args = ExportPipeline::build_args(&job);
+        assert!(!args.contains(&"-af".to_string()));
+    }
+}
