@@ -83,11 +83,7 @@ async fn check_display_server() -> DiagnosticCheck {
     let wayland = std::env::var("WAYLAND_DISPLAY").ok();
 
     let (status, detail, rec) = match (&display, &wayland) {
-        (Some(d), _) => (
-            CheckStatus::Pass,
-            format!("X11 (DISPLAY={})", d),
-            None,
-        ),
+        (Some(d), _) => (CheckStatus::Pass, format!("X11 (DISPLAY={})", d), None),
         (None, Some(w)) => (
             CheckStatus::Warn,
             format!("Wayland only (WAYLAND_DISPLAY={})", w),
@@ -151,7 +147,10 @@ async fn check_vaapi() -> DiagnosticCheck {
                     name: "VA-API".to_string(),
                     status: CheckStatus::Warn,
                     detail: format!("VA-API device found but no H.264 profiles ({})", device),
-                    recommendation: Some("Install VA-API drivers: sudo apt install intel-media-va-driver-non-free".to_string()),
+                    recommendation: Some(
+                        "Install VA-API drivers: sudo apt install intel-media-va-driver-non-free"
+                            .to_string(),
+                    ),
                 }
             } else {
                 DiagnosticCheck {
@@ -220,7 +219,10 @@ async fn check_audio_sources() -> DiagnosticCheck {
                 },
                 detail: format!("{} monitors, {} inputs", monitors.len(), inputs.len()),
                 recommendation: if monitors.is_empty() {
-                    Some("No desktop audio monitor found. Check PulseAudio/PipeWire config.".to_string())
+                    Some(
+                        "No desktop audio monitor found. Check PulseAudio/PipeWire config."
+                            .to_string(),
+                    )
                 } else {
                     None
                 },
@@ -230,7 +232,9 @@ async fn check_audio_sources() -> DiagnosticCheck {
             name: "Audio Sources".to_string(),
             status: CheckStatus::Fail,
             detail: "Failed to enumerate audio sources".to_string(),
-            recommendation: Some("Check pactl is installed and audio server is running".to_string()),
+            recommendation: Some(
+                "Check pactl is installed and audio server is running".to_string(),
+            ),
         },
     }
 }
@@ -246,7 +250,11 @@ async fn check_disk_space() -> DiagnosticCheck {
             DiagnosticCheck {
                 name: "Disk Space".to_string(),
                 status: CheckStatus::Pass,
-                detail: format!("{} available ({}% used)", available, use_pct.trim_end_matches('%')),
+                detail: format!(
+                    "{} available ({}% used)",
+                    available,
+                    use_pct.trim_end_matches('%')
+                ),
                 recommendation: None,
             }
         }

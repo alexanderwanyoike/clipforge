@@ -7,7 +7,13 @@ use tauri::{
 pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let show = MenuItem::with_id(app, "show", "Show ClipForge", true, None::<&str>)?;
     let record = MenuItem::with_id(app, "record", "Start Recording", true, None::<&str>)?;
-    let replay_toggle = MenuItem::with_id(app, "replay_toggle", "Enable Replay Buffer", true, None::<&str>)?;
+    let replay_toggle = MenuItem::with_id(
+        app,
+        "replay_toggle",
+        "Enable Replay Buffer",
+        true,
+        None::<&str>,
+    )?;
     let replay_save = MenuItem::with_id(app, "replay_save", "Save Replay", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 

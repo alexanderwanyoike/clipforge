@@ -14,7 +14,11 @@ use clipforge_core::replay::save::save_replay;
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "clipforge", version, about = "Linux game recording with instant replay")]
+#[command(
+    name = "clipforge",
+    version,
+    about = "Linux game recording with instant replay"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -103,26 +107,35 @@ async fn main() -> Result<()> {
     config.ensure_dirs()?;
 
     match cli.command {
-        Commands::Record { mode: _, fps, encoder, out } => {
+        Commands::Record {
+            mode: _,
+            fps,
+            encoder,
+            out,
+        } => {
             config.recording.fps = fps;
 
             let encoders = probe_encoders().await;
             let enc = if encoder == "auto" {
                 select_best_encoder(&encoders)
             } else {
-                encoders.iter().find(|e| e.name == encoder)
+                encoders
+                    .iter()
+                    .find(|e| e.name == encoder)
                     .unwrap_or_else(|| select_best_encoder(&encoders))
             };
 
             let source = create_capture_source(&config).await?;
             let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
-            let output = out.unwrap_or_else(|| {
-                PathBuf::from(format!("recording_{}.mkv", timestamp))
-            });
+            let output =
+                out.unwrap_or_else(|| PathBuf::from(format!("recording_{}.mkv", timestamp)));
 
             let args = build_recording_command(&config, enc, &source, &output).await;
             println!("Recording to: {}", output.display());
-            println!("Encoder: {} | FPS: {} | Press Ctrl+C to stop", enc.name, fps);
+            println!(
+                "Encoder: {} | FPS: {} | Press Ctrl+C to stop",
+                enc.name, fps
+            );
 
             let mut process = FfmpegProcess::spawn(args).await?;
 
@@ -169,7 +182,10 @@ async fn main() -> Result<()> {
 
             let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
             let output = out.unwrap_or_else(|| {
-                config.paths.replays_dir.join(format!("replay_{}.mkv", timestamp))
+                config
+                    .paths
+                    .replays_dir
+                    .join(format!("replay_{}.mkv", timestamp))
             });
 
             println!("Saving last {} seconds...", seconds);
@@ -177,13 +193,22 @@ async fn main() -> Result<()> {
             println!("Saved: {}", path.display());
         }
 
-        Commands::Export { input, preset, out, trim_start, trim_end } => {
+        Commands::Export {
+            input,
+            preset,
+            out,
+            trim_start,
+            trim_end,
+        } => {
             let preset_obj = match preset.as_str() {
                 "shorts" => ExportPreset::shorts(),
                 "youtube" => ExportPreset::youtube(),
                 "trailer" => ExportPreset::trailer(),
                 "high_quality" => ExportPreset::high_quality(),
-                _ => anyhow::bail!("Unknown preset: {}. Use: shorts, youtube, trailer, high_quality", preset),
+                _ => anyhow::bail!(
+                    "Unknown preset: {}. Use: shorts, youtube, trailer, high_quality",
+                    preset
+                ),
             };
 
             let output = out.unwrap_or_else(|| {

@@ -15,10 +15,7 @@ pub struct RecordingState {
 }
 
 #[tauri::command]
-pub async fn start_recording(
-    app: AppHandle,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn start_recording(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     let mut recorder = state.recorder.lock().await;
 
     if recorder.status != RecordingStatus::Idle {
@@ -26,11 +23,14 @@ pub async fn start_recording(
     }
 
     recorder.status = RecordingStatus::Starting;
-    let _ = app.emit("recording-state-changed", RecordingState {
-        status: RecordingStatus::Starting,
-        elapsed_secs: 0,
-        file_path: None,
-    });
+    let _ = app.emit(
+        "recording-state-changed",
+        RecordingState {
+            status: RecordingStatus::Starting,
+            elapsed_secs: 0,
+            file_path: None,
+        },
+    );
 
     let config = state.config.read().await;
     let encoders = state.encoders.read().await;
@@ -51,8 +51,7 @@ pub async fn start_recording(
     let output_path = config.paths.recordings_dir.join(&filename);
 
     // Ensure recording directory exists
-    std::fs::create_dir_all(&config.paths.recordings_dir)
-        .map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&config.paths.recordings_dir).map_err(|e| e.to_string())?;
 
     let args = build_recording_command(&config, encoder, &source, &output_path).await;
 
@@ -65,11 +64,14 @@ pub async fn start_recording(
             recorder.output_path = Some(output_path.clone());
             recorder.start_time = Some(std::time::Instant::now());
 
-            let _ = app.emit("recording-state-changed", RecordingState {
-                status: RecordingStatus::Recording,
-                elapsed_secs: 0,
-                file_path: Some(output_path.to_string_lossy().to_string()),
-            });
+            let _ = app.emit(
+                "recording-state-changed",
+                RecordingState {
+                    status: RecordingStatus::Recording,
+                    elapsed_secs: 0,
+                    file_path: Some(output_path.to_string_lossy().to_string()),
+                },
+            );
 
             // Start timer task
             let app_handle = app.clone();
@@ -82,9 +84,7 @@ pub async fn start_recording(
                     if rec.status != RecordingStatus::Recording {
                         break;
                     }
-                    let elapsed = rec.start_time
-                        .map(|t| t.elapsed().as_secs())
-                        .unwrap_or(0);
+                    let elapsed = rec.start_time.map(|t| t.elapsed().as_secs()).unwrap_or(0);
                     let _ = app_handle.emit("recording-timer", elapsed);
                 }
             });
@@ -100,10 +100,7 @@ pub async fn start_recording(
 }
 
 #[tauri::command]
-pub async fn stop_recording(
-    app: AppHandle,
-    state: State<'_, AppState>,
-) -> Result<String, String> {
+pub async fn stop_recording(app: AppHandle, state: State<'_, AppState>) -> Result<String, String> {
     let mut recorder = state.recorder.lock().await;
 
     if recorder.status != RecordingStatus::Recording {
@@ -111,11 +108,17 @@ pub async fn stop_recording(
     }
 
     recorder.status = RecordingStatus::Stopping;
-    let _ = app.emit("recording-state-changed", RecordingState {
-        status: RecordingStatus::Stopping,
-        elapsed_secs: 0,
-        file_path: recorder.output_path.as_ref().map(|p| p.to_string_lossy().to_string()),
-    });
+    let _ = app.emit(
+        "recording-state-changed",
+        RecordingState {
+            status: RecordingStatus::Stopping,
+            elapsed_secs: 0,
+            file_path: recorder
+                .output_path
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string()),
+        },
+    );
 
     if let Some(ref mut process) = recorder.process {
         process.stop_graceful().await.map_err(|e| e.to_string())?;
@@ -131,11 +134,14 @@ pub async fn stop_recording(
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_default();
 
-    let _ = app.emit("recording-state-changed", RecordingState {
-        status: RecordingStatus::Idle,
-        elapsed_secs: 0,
-        file_path: None,
-    });
+    let _ = app.emit(
+        "recording-state-changed",
+        RecordingState {
+            status: RecordingStatus::Idle,
+            elapsed_secs: 0,
+            file_path: None,
+        },
+    );
 
     // Index the recording in the library
     if let Some(ref path) = output_path {
@@ -207,17 +213,19 @@ async fn index_recording(
 }
 
 #[tauri::command]
-pub async fn get_recording_status(
-    state: State<'_, AppState>,
-) -> Result<RecordingState, String> {
+pub async fn get_recording_status(state: State<'_, AppState>) -> Result<RecordingState, String> {
     let recorder = state.recorder.lock().await;
-    let elapsed = recorder.start_time
+    let elapsed = recorder
+        .start_time
         .map(|t| t.elapsed().as_secs())
         .unwrap_or(0);
 
     Ok(RecordingState {
         status: recorder.status,
         elapsed_secs: elapsed,
-        file_path: recorder.output_path.as_ref().map(|p| p.to_string_lossy().to_string()),
+        file_path: recorder
+            .output_path
+            .as_ref()
+            .map(|p| p.to_string_lossy().to_string()),
     })
 }

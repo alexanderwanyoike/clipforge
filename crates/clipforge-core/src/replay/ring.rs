@@ -1,6 +1,6 @@
 use crate::error::{Error, Result};
 use std::path::{Path, PathBuf};
-use tracing::{debug};
+use tracing::debug;
 
 /// Manages the circular segment buffer for instant replay
 pub struct ReplayRing {

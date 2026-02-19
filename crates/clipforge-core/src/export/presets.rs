@@ -76,7 +76,12 @@ impl ExportPreset {
     }
 
     pub fn all() -> Vec<Self> {
-        vec![Self::shorts(), Self::youtube(), Self::trailer(), Self::high_quality()]
+        vec![
+            Self::shorts(),
+            Self::youtube(),
+            Self::trailer(),
+            Self::high_quality(),
+        ]
     }
 }
 

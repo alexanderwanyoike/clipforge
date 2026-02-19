@@ -71,9 +71,15 @@ mod tests {
 
     #[test]
     fn display_output_for_known_variants() {
-        assert_eq!(Error::FfmpegNotFound.to_string(), "FFmpeg not found in PATH");
+        assert_eq!(
+            Error::FfmpegNotFound.to_string(),
+            "FFmpeg not found in PATH"
+        );
         assert_eq!(Error::NoEncoder.to_string(), "No suitable encoder found");
-        assert_eq!(Error::NoSegments.to_string(), "No segments available for replay save");
+        assert_eq!(
+            Error::NoSegments.to_string(),
+            "No segments available for replay save"
+        );
         assert_eq!(
             Error::Config("bad value".into()).to_string(),
             "Config error: bad value"

@@ -20,10 +20,8 @@ impl FfmpegCommandBuilder {
     pub fn with_hw_device(mut self, encoder: &EncoderInfo) -> Self {
         if let Some(device) = &encoder.device {
             if encoder.hw_accel == HwAccelType::Vaapi {
-                self.args.extend([
-                    "-vaapi_device".to_string(),
-                    device.clone(),
-                ]);
+                self.args
+                    .extend(["-vaapi_device".to_string(), device.clone()]);
             }
         }
         self
@@ -68,10 +66,14 @@ impl FfmpegCommandBuilder {
             }
             HwAccelType::Nvenc => {
                 self.args.extend([
-                    "-map".to_string(), "0:v".to_string(),
-                    "-c:v".to_string(), "h264_nvenc".to_string(),
-                    "-preset".to_string(), "p4".to_string(),
-                    "-rc".to_string(), "constqp".to_string(),
+                    "-map".to_string(),
+                    "0:v".to_string(),
+                    "-c:v".to_string(),
+                    "h264_nvenc".to_string(),
+                    "-preset".to_string(),
+                    "p4".to_string(),
+                    "-rc".to_string(),
+                    "constqp".to_string(),
                 ]);
                 let qp = quality_to_qp(quality);
                 self.args.extend(["-qp".to_string(), qp.to_string()]);
@@ -79,19 +81,26 @@ impl FfmpegCommandBuilder {
             }
             HwAccelType::Qsv => {
                 self.args.extend([
-                    "-map".to_string(), "0:v".to_string(),
-                    "-c:v".to_string(), "h264_qsv".to_string(),
-                    "-preset".to_string(), "medium".to_string(),
+                    "-map".to_string(),
+                    "0:v".to_string(),
+                    "-c:v".to_string(),
+                    "h264_qsv".to_string(),
+                    "-preset".to_string(),
+                    "medium".to_string(),
                 ]);
                 let qp = quality_to_qp(quality);
-                self.args.extend(["-global_quality".to_string(), qp.to_string()]);
+                self.args
+                    .extend(["-global_quality".to_string(), qp.to_string()]);
                 self.args.extend(["-g".to_string(), "120".to_string()]);
             }
             HwAccelType::Software => {
                 self.args.extend([
-                    "-map".to_string(), "0:v".to_string(),
-                    "-c:v".to_string(), "libx264".to_string(),
-                    "-preset".to_string(), "fast".to_string(),
+                    "-map".to_string(),
+                    "0:v".to_string(),
+                    "-c:v".to_string(),
+                    "libx264".to_string(),
+                    "-preset".to_string(),
+                    "fast".to_string(),
                 ]);
                 let crf = quality_to_crf(quality);
                 self.args.extend(["-crf".to_string(), crf.to_string()]);
@@ -105,9 +114,12 @@ impl FfmpegCommandBuilder {
     pub fn with_audio_encode(mut self, has_audio: bool) -> Self {
         if has_audio {
             self.args.extend([
-                "-map".to_string(), "1:a".to_string(),
-                "-c:a".to_string(), "aac".to_string(),
-                "-b:a".to_string(), "192k".to_string(),
+                "-map".to_string(),
+                "1:a".to_string(),
+                "-c:a".to_string(),
+                "aac".to_string(),
+                "-b:a".to_string(),
+                "192k".to_string(),
             ]);
         }
         self
@@ -135,13 +147,20 @@ impl FfmpegCommandBuilder {
         let segment_list = segment_dir.join("segments.csv");
 
         self.args.extend([
-            "-f".to_string(), "segment".to_string(),
-            "-segment_time".to_string(), segment_time.to_string(),
-            "-segment_format".to_string(), "matroska".to_string(),
-            "-segment_wrap".to_string(), segment_wrap.to_string(),
-            "-segment_list".to_string(), segment_list.to_string_lossy().to_string(),
-            "-segment_list_type".to_string(), "csv".to_string(),
-            "-reset_timestamps".to_string(), "1".to_string(),
+            "-f".to_string(),
+            "segment".to_string(),
+            "-segment_time".to_string(),
+            segment_time.to_string(),
+            "-segment_format".to_string(),
+            "matroska".to_string(),
+            "-segment_wrap".to_string(),
+            segment_wrap.to_string(),
+            "-segment_list".to_string(),
+            segment_list.to_string_lossy().to_string(),
+            "-segment_list_type".to_string(),
+            "csv".to_string(),
+            "-reset_timestamps".to_string(),
+            "1".to_string(),
             segment_pattern.to_string_lossy().to_string(),
         ]);
         self

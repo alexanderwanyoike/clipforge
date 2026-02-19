@@ -263,7 +263,10 @@ mod tests {
             thumb.contains("cache") || thumb.contains(".cache"),
             "thumbnails should be in cache dir, got: {thumb}"
         );
-        assert!(!thumb.contains("Videos"), "thumbnails should not be under ~/Videos");
+        assert!(
+            !thumb.contains("Videos"),
+            "thumbnails should not be under ~/Videos"
+        );
     }
 
     #[test]
@@ -289,8 +292,14 @@ mod tests {
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: Config = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.recording.fps, config.recording.fps);
-        assert_eq!(deserialized.replay.duration_secs, config.replay.duration_secs);
-        assert_eq!(deserialized.paths.recordings_dir, config.paths.recordings_dir);
+        assert_eq!(
+            deserialized.replay.duration_secs,
+            config.replay.duration_secs
+        );
+        assert_eq!(
+            deserialized.paths.recordings_dir,
+            config.paths.recordings_dir
+        );
         assert_eq!(deserialized.paths.replays_dir, config.paths.replays_dir);
         assert_eq!(deserialized.export.output_dir, config.export.output_dir);
         assert_eq!(deserialized.ui.theme, config.ui.theme);

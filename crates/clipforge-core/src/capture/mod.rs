@@ -30,28 +30,56 @@ impl CaptureSource {
     /// Convert to FFmpeg input arguments
     pub fn to_ffmpeg_args(&self) -> Vec<String> {
         match self {
-            CaptureSource::X11Fullscreen { display, width, height, fps } => {
+            CaptureSource::X11Fullscreen {
+                display,
+                width,
+                height,
+                fps,
+            } => {
                 vec![
-                    "-f".to_string(), "x11grab".to_string(),
-                    "-framerate".to_string(), fps.to_string(),
-                    "-video_size".to_string(), format!("{}x{}", width, height),
-                    "-i".to_string(), format!("{}.0", display),
+                    "-f".to_string(),
+                    "x11grab".to_string(),
+                    "-framerate".to_string(),
+                    fps.to_string(),
+                    "-video_size".to_string(),
+                    format!("{}x{}", width, height),
+                    "-i".to_string(),
+                    format!("{}.0", display),
                 ]
             }
-            CaptureSource::X11Window { display, window_id, fps } => {
+            CaptureSource::X11Window {
+                display,
+                window_id,
+                fps,
+            } => {
                 vec![
-                    "-f".to_string(), "x11grab".to_string(),
-                    "-framerate".to_string(), fps.to_string(),
-                    "-window_id".to_string(), window_id.clone(),
-                    "-i".to_string(), format!("{}.0", display),
+                    "-f".to_string(),
+                    "x11grab".to_string(),
+                    "-framerate".to_string(),
+                    fps.to_string(),
+                    "-window_id".to_string(),
+                    window_id.clone(),
+                    "-i".to_string(),
+                    format!("{}.0", display),
                 ]
             }
-            CaptureSource::X11Region { display, x, y, width, height, fps } => {
+            CaptureSource::X11Region {
+                display,
+                x,
+                y,
+                width,
+                height,
+                fps,
+            } => {
                 vec![
-                    "-f".to_string(), "x11grab".to_string(),
-                    "-framerate".to_string(), fps.to_string(),
-                    "-video_size".to_string(), format!("{}x{}", width, height),
-                    "-i".to_string(), format!("{}.0+{},{}", display, x, y),
+                    "-f".to_string(),
+                    "x11grab".to_string(),
+                    "-framerate".to_string(),
+                    fps.to_string(),
+                    "-video_size".to_string(),
+                    format!("{}x{}", width, height),
+                    "-i".to_string(),
+                    format!("{}.0+{},{}", display, x, y),
                 ]
             }
         }

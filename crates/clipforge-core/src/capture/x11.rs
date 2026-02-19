@@ -55,7 +55,11 @@ pub async fn get_screen_resolution() -> Result<(u32, u32)> {
                     let res_part = word.split('+').next().unwrap_or("");
                     if let Some((w, h)) = res_part.split_once('x') {
                         if let (Ok(w), Ok(h)) = (w.parse(), h.parse()) {
-                            debug!(width = w, height = h, "detected screen resolution via xrandr");
+                            debug!(
+                                width = w,
+                                height = h,
+                                "detected screen resolution via xrandr"
+                            );
                             return Ok((w, h));
                         }
                     }
@@ -94,16 +98,14 @@ pub async fn create_capture_source(config: &Config) -> Result<CaptureSource> {
                 fps,
             })
         }
-        CaptureMode::Region { x, y, w, h } => {
-            Ok(CaptureSource::X11Region {
-                display,
-                x: *x,
-                y: *y,
-                width: *w,
-                height: *h,
-                fps,
-            })
-        }
+        CaptureMode::Region { x, y, w, h } => Ok(CaptureSource::X11Region {
+            display,
+            x: *x,
+            y: *y,
+            width: *w,
+            height: *h,
+            fps,
+        }),
     }
 }
 

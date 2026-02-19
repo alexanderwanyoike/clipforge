@@ -6,9 +6,7 @@ use clipforge_core::encode::hw_probe::EncoderInfo;
 use tauri::State;
 
 #[tauri::command]
-pub async fn get_encoders(
-    state: State<'_, AppState>,
-) -> Result<Vec<EncoderInfo>, String> {
+pub async fn get_encoders(state: State<'_, AppState>) -> Result<Vec<EncoderInfo>, String> {
     let encoders = state.encoders.read().await;
     Ok(encoders.clone())
 }
@@ -19,18 +17,13 @@ pub async fn get_audio_sources() -> Result<Vec<AudioSource>, String> {
 }
 
 #[tauri::command]
-pub async fn get_config(
-    state: State<'_, AppState>,
-) -> Result<Config, String> {
+pub async fn get_config(state: State<'_, AppState>) -> Result<Config, String> {
     let config = state.config.read().await;
     Ok(config.clone())
 }
 
 #[tauri::command]
-pub async fn update_config(
-    state: State<'_, AppState>,
-    config: Config,
-) -> Result<(), String> {
+pub async fn update_config(state: State<'_, AppState>, config: Config) -> Result<(), String> {
     config.save().map_err(|e| e.to_string())?;
     *state.config.write().await = config;
     Ok(())

@@ -13,8 +13,8 @@ pub struct AudioSource {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AudioSourceType {
-    Monitor,  // Desktop audio (monitor of output sink)
-    Input,    // Microphone
+    Monitor, // Desktop audio (monitor of output sink)
+    Input,   // Microphone
 }
 
 /// List available PulseAudio/PipeWire audio sources
@@ -54,7 +54,11 @@ pub async fn list_audio_sources() -> Result<Vec<AudioSource>> {
                     AudioSourceType::Input
                 };
                 debug!(id = %name, description = %desc, "found audio source");
-                sources.push(AudioSource { id: name, name: desc, source_type });
+                sources.push(AudioSource {
+                    id: name,
+                    name: desc,
+                    source_type,
+                });
             }
             current_name = Some(trimmed.trim_start_matches("Name: ").to_string());
             current_description = None;
@@ -76,7 +80,11 @@ pub async fn list_audio_sources() -> Result<Vec<AudioSource>> {
             AudioSourceType::Input
         };
         debug!(id = %name, description = %desc, "found audio source");
-        sources.push(AudioSource { id: name, name: desc, source_type });
+        sources.push(AudioSource {
+            id: name,
+            name: desc,
+            source_type,
+        });
     }
 
     Ok(sources)

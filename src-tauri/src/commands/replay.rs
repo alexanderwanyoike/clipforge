@@ -45,8 +45,7 @@ pub async fn toggle_replay_buffer(
             .map_err(|e| e.to_string())?;
 
         // Ensure cache directory
-        std::fs::create_dir_all(&config.paths.replay_cache_dir)
-            .map_err(|e| e.to_string())?;
+        std::fs::create_dir_all(&config.paths.replay_cache_dir).map_err(|e| e.to_string())?;
 
         let ring = ReplayRing::new(
             &config.paths.replay_cache_dir,
@@ -95,8 +94,7 @@ pub async fn save_replay_clip(
     let filename = format!("replay_{}.mkv", timestamp);
     let output_path = config.paths.replays_dir.join(&filename);
 
-    std::fs::create_dir_all(&config.paths.replays_dir)
-        .map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&config.paths.replays_dir).map_err(|e| e.to_string())?;
 
     let result = save_replay(ring, duration, &output_path)
         .await
@@ -110,9 +108,7 @@ pub async fn save_replay_clip(
 }
 
 #[tauri::command]
-pub async fn get_replay_status(
-    state: State<'_, AppState>,
-) -> Result<bool, String> {
+pub async fn get_replay_status(state: State<'_, AppState>) -> Result<bool, String> {
     let replay = state.replay.lock().await;
     Ok(replay.active)
 }

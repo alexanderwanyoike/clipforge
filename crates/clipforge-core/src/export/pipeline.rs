@@ -62,10 +62,7 @@ impl ExportPipeline {
 
         // Audio
         if job.preset.loudnorm {
-            args.extend([
-                "-af".to_string(),
-                "loudnorm=I=-14:TP=-1:LRA=11".to_string(),
-            ]);
+            args.extend(["-af".to_string(), "loudnorm=I=-14:TP=-1:LRA=11".to_string()]);
         }
         args.extend([
             "-c:a".to_string(),
@@ -159,8 +156,14 @@ mod tests {
         assert!(args.contains(&"-vf".to_string()));
         let vf_idx = args.iter().position(|a| a == "-vf").unwrap();
         let filter = &args[vf_idx + 1];
-        assert!(filter.contains("crop="), "expected crop filter, got: {filter}");
-        assert!(filter.contains("scale="), "expected scale filter, got: {filter}");
+        assert!(
+            filter.contains("crop="),
+            "expected crop filter, got: {filter}"
+        );
+        assert!(
+            filter.contains("scale="),
+            "expected scale filter, got: {filter}"
+        );
     }
 
     #[test]

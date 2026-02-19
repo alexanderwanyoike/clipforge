@@ -30,10 +30,7 @@ pub async fn search_recordings(
 }
 
 #[tauri::command]
-pub async fn delete_recording(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<(), String> {
+pub async fn delete_recording(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let lib = state.library.lock().await;
     match lib.as_ref() {
         Some(lib) => lib.delete(&id).map_err(|e| e.to_string()),

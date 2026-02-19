@@ -104,12 +104,7 @@ impl FfmpegProcess {
         }
 
         // Wait for process to exit with timeout
-        match tokio::time::timeout(
-            std::time::Duration::from_secs(10),
-            self.child.wait(),
-        )
-        .await
-        {
+        match tokio::time::timeout(std::time::Duration::from_secs(10), self.child.wait()).await {
             Ok(Ok(status)) => {
                 let new_state = if status.success() {
                     ProcessState::Stopped
@@ -191,7 +186,10 @@ fn parse_progress(line: &str) -> Option<FfmpegProgress> {
     if progress.frame == 0 {
         if let Some(idx) = line.find("frame=") {
             let rest = &line[idx + 6..];
-            let val: String = rest.chars().take_while(|c| c.is_ascii_digit() || c.is_whitespace()).collect();
+            let val: String = rest
+                .chars()
+                .take_while(|c| c.is_ascii_digit() || c.is_whitespace())
+                .collect();
             progress.frame = val.trim().parse().unwrap_or(0);
         }
     }

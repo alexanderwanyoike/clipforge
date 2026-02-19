@@ -21,10 +21,14 @@ pub async fn save_replay(ring: &ReplayRing, seconds: u32, output: &Path) -> Resu
     // Run ffmpeg concat (copy, no re-encode)
     let output_path = output.to_path_buf();
     run_ffmpeg(&[
-        "-f", "concat",
-        "-safe", "0",
-        "-i", &concat_file.to_string_lossy(),
-        "-c", "copy",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        &concat_file.to_string_lossy(),
+        "-c",
+        "copy",
         &output_path.to_string_lossy(),
     ])
     .await?;
