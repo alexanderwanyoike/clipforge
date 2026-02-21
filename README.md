@@ -18,6 +18,10 @@
 
 ---
 
+## Screenshot
+
+![ClipForge](docs/screenshots/app.png)
+
 ## Overview
 
 ClipForge is a lightweight, native game recording tool for Linux. It uses hardware-accelerated encoding (VA-API, NVENC, QSV) to capture gameplay with minimal performance impact and keeps a rolling replay buffer in shared memory so you can save the last 30 seconds at any time.
