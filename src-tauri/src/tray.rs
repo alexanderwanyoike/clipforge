@@ -20,6 +20,8 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let menu = Menu::with_items(app, &[&show, &record, &replay_toggle, &replay_save, &quit])?;
 
     let _tray = TrayIconBuilder::new()
+        .icon(tauri::include_image!("icons/32x32.png"))
+        .icon_as_template(false)
         .menu(&menu)
         .tooltip("ClipForge")
         .on_menu_event(move |app, event| {

@@ -56,6 +56,11 @@ pub fn run() {
             commands::system::run_doctor,
         ])
         .setup(|app| {
+            // Set window icon (taskbar / Alt+Tab)
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_icon(tauri::include_image!("icons/128x128.png"));
+            }
+
             // Setup tray
             if let Err(e) = tray::setup_tray(app.handle()) {
                 tracing::warn!(error = %e, "failed to setup tray");
