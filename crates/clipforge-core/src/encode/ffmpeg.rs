@@ -56,7 +56,7 @@ impl FfmpegCommandBuilder {
             HwAccelType::Vaapi => {
                 self.args.extend([
                     "-filter_complex".to_string(),
-                    "[0:v]hwupload,scale_vaapi=format=nv12[vout]".to_string(),
+                    "[0:v]format=nv12,hwupload,scale_vaapi=format=nv12[vout]".to_string(),
                     "-map".to_string(),
                     "[vout]".to_string(),
                 ]);

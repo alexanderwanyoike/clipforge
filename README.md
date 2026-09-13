@@ -30,7 +30,7 @@ It ships as both a **desktop app** (Tauri + React) with tray controls and global
 
 ## Features
 
-- **Hardware-accelerated recording** -- X11 screen capture with VA-API, NVENC, or QSV encoding, falling back to software x264
+- **Hardware-accelerated recording** -- Wayland portal / X11 screen capture with VA-API, NVENC, or QSV encoding, falling back to software x264
 - **Instant replay buffer** -- Ring-buffer segments in `/dev/shm` for zero-disk-overhead replay saves
 - **Desktop audio capture** -- Automatically resolves the active PulseAudio/PipeWire monitor source
 - **Recording library** -- FTS5-indexed SQLite database with auto-generated thumbnails and metadata
@@ -43,7 +43,8 @@ It ships as both a **desktop app** (Tauri + React) with tray controls and global
 
 | Dependency | Version | Notes |
 |---|---|---|
-| Linux | X11 or XWayland | Wayland-native capture is on the roadmap |
+| Linux | X11 or Wayland | Wayland uses the desktop ScreenCast portal and PipeWire |
+| GStreamer (Wayland) | 1.20+ | Tools, PipeWire plugin, base and good plugins; installed on the host, including for AppImage |
 | FFmpeg | 5.0+ | With `x11grab` and `pulse` input support |
 | PipeWire or PulseAudio | -- | PipeWire recommended |
 | Rust | 1.75+ | For building from source |
@@ -58,12 +59,39 @@ It ships as both a **desktop app** (Tauri + React) with tray controls and global
 # Ubuntu / Debian
 sudo apt install -y ffmpeg libwebkit2gtk-4.1-dev libsoup-3.0-dev \
   libjavascriptcoregtk-4.1-dev libglib2.0-dev libgtk-3-dev \
-  libappindicator3-dev librsvg2-dev patchelf
+  libappindicator3-dev librsvg2-dev patchelf \
+  gstreamer1.0-tools gstreamer1.0-pipewire \
+  gstreamer1.0-plugins-base gstreamer1.0-plugins-good xdg-desktop-portal
 
 # Fedora
 sudo dnf install -y ffmpeg webkit2gtk4.1-devel libsoup3-devel \
-  gtk3-devel libappindicator-gtk3-devel librsvg2-devel patchelf
+  gtk3-devel libappindicator-gtk3-devel librsvg2-devel patchelf \
+  gstreamer1-plugins-base gstreamer1-plugins-good pipewire-gstreamer xdg-desktop-portal
 ```
+
+### Recording on KDE / Wayland
+
+Install the portal backend for your desktop (`xdg-desktop-portal-kde` on KDE).
+On Arch/CachyOS, install `gstreamer gst-plugin-pipewire gst-plugins-base
+ gst-plugins-good xdg-desktop-portal xdg-desktop-portal-kde` alongside FFmpeg.
+The AppImage uses these host multimedia tools; it does not bundle PipeWire or
+GStreamer plugins.
+
+Start recording or the replay buffer, then choose a monitor in the desktop's
+sharing dialog. Window mode opens the portal's window picker (CLI:
+`clipforge record --mode window`). Each new capture requests permission; recording
+and replay have separate sessions. Cancelling lets you retry. Region mode is
+currently available on X11 only.
+
+Wayland capture transports uncompressed I420 frames through GStreamer to FFmpeg,
+which retains the existing hardware encoding and desktop audio path. This uses
+CPU conversion/copies; it is not a zero-copy GPU capture path. The desktop controls
+which windows can be shared and what happens when a shared window is minimized.
+
+Run `clipforge doctor` to check the portal and required plugins. ClipForge waits
+for an encoded frame before reporting Recording and reports startup failures
+instead of silently falling back to X11. See [Wayland validation](docs/wayland-testing.md)
+for automated and live checks.
 
 ### Build and run
 

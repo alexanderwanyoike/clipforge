@@ -22,7 +22,9 @@ jobs:
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev libsoup-3.0-dev \
             libjavascriptcoregtk-4.1-dev libglib2.0-dev \
-            libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf ffmpeg
+            libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
+            ffmpeg gstreamer1.0-tools gstreamer1.0-pipewire \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -44,6 +46,9 @@ jobs:
 
       - name: Finite export completion
         run: cargo test -p clipforge-core short_export_completes -- --ignored
+
+      - name: Wayland frame transport and process cleanup
+        run: cargo test -p clipforge-core wayland_transport -- --ignored
 
   ui:
     name: UI Build
@@ -78,7 +83,9 @@ jobs:
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev libsoup-3.0-dev \
             libjavascriptcoregtk-4.1-dev libglib2.0-dev \
-            libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf ffmpeg
+            libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
+            ffmpeg gstreamer1.0-tools gstreamer1.0-pipewire \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good
 
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
