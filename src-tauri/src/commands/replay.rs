@@ -39,7 +39,7 @@ pub async fn toggle_replay_buffer(
             return Err("No encoders available".to_string());
         }
 
-        let encoder = select_best_encoder(&encoders);
+        let encoder = select_best_encoder(&encoders).map_err(|error| error.to_string())?;
         let source = create_capture_source(&config)
             .await
             .map_err(|e| e.to_string())?;

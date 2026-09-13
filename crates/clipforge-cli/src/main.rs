@@ -1,3 +1,12 @@
+#![cfg_attr(
+    not(test),
+    deny(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::panic,
+        clippy::unreachable
+    )
+)]
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use clipforge_core::audio::list_audio_sources;
@@ -117,12 +126,12 @@ async fn main() -> Result<()> {
 
             let encoders = probe_encoders().await;
             let enc = if encoder == "auto" {
-                select_best_encoder(&encoders)
+                select_best_encoder(&encoders)?
             } else {
                 encoders
                     .iter()
-                    .find(|e| e.name == encoder)
-                    .unwrap_or_else(|| select_best_encoder(&encoders))
+                    .find(|e| e.name == encoder && e.available)
+                    .ok_or_else(|| anyhow::anyhow!("Requested encoder is unavailable: {encoder}"))?
             };
 
             let source = create_capture_source(&config).await?;
@@ -150,7 +159,7 @@ async fn main() -> Result<()> {
             config.replay.duration_secs = seconds;
 
             let encoders = probe_encoders().await;
-            let enc = select_best_encoder(&encoders);
+            let enc = select_best_encoder(&encoders)?;
             let source = create_capture_source(&config).await?;
 
             let ring = ReplayRing::new(

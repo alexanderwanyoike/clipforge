@@ -1,6 +1,6 @@
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::export::presets::ExportPreset;
-use crate::process::FfmpegProcess;
+use crate::process::run_ffmpeg;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tracing::info;
@@ -88,24 +88,10 @@ impl ExportPipeline {
         let args = Self::build_args(job);
         info!(args = ?args, "starting export");
 
-        let process = FfmpegProcess::spawn(args).await?;
-
-        // Wait for completion by watching state
-        let mut state_rx = process.subscribe_state();
-        loop {
-            state_rx
-                .changed()
-                .await
-                .map_err(|_| Error::Other("state channel closed".into()))?;
-            let state = *state_rx.borrow();
-            match state {
-                crate::process::ProcessState::Stopped => break,
-                crate::process::ProcessState::Failed => {
-                    return Err(Error::ExportFailed("FFmpeg process failed".into()));
-                }
-                _ => continue,
-            }
-        }
+        // Finite exports can finish before a recording startup probe sees its
+        // first frame. Wait for the actual exit status instead of capture state.
+        let borrowed: Vec<&str> = args.iter().map(String::as_str).collect();
+        run_ffmpeg(&borrowed).await?;
 
         info!(output = %job.output.display(), "export completed");
         Ok(())
@@ -180,5 +166,44 @@ mod tests {
         let job = make_job(ExportPreset::high_quality(), None, None);
         let args = ExportPipeline::build_args(&job);
         assert!(!args.contains(&"-af".to_string()));
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use crate::process::run_ffmpeg;
+    #[tokio::test]
+    #[ignore = "requires FFmpeg with libx264"]
+    async fn short_export_completes() {
+        let temp = tempfile::tempdir().unwrap();
+        let input = temp.path().join("input.mkv");
+        run_ffmpeg(&[
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=size=320x240:rate=30",
+            "-t",
+            "0.2",
+            "-c:v",
+            "libx264",
+            input.to_str().unwrap(),
+        ])
+        .await
+        .unwrap();
+        let job = crate::export::pipeline::ExportJob {
+            input,
+            output: temp.path().join("export.mp4"),
+            preset: crate::export::presets::ExportPreset::high_quality(),
+            trim_start: None,
+            trim_end: None,
+        };
+        tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            crate::export::pipeline::ExportPipeline::run(&job),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert!(job.output.exists());
     }
 }

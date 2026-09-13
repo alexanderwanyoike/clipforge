@@ -200,11 +200,11 @@ async fn test_qsv_encoder() -> bool {
 }
 
 /// Select the best encoder from probed results
-pub fn select_best_encoder(encoders: &[EncoderInfo]) -> &EncoderInfo {
+pub fn select_best_encoder(encoders: &[EncoderInfo]) -> crate::error::Result<&EncoderInfo> {
     encoders
         .iter()
-        .find(|e| e.available)
-        .expect("at least software encoder should be available")
+        .find(|encoder| encoder.available)
+        .ok_or(crate::error::Error::NoEncoder)
 }
 
 #[cfg(test)]
@@ -226,7 +226,7 @@ mod tests {
             make_encoder("h264_vaapi", HwAccelType::Vaapi, true),
             make_encoder("libx264", HwAccelType::Software, true),
         ];
-        let best = select_best_encoder(&encoders);
+        let best = select_best_encoder(&encoders).unwrap();
         assert_eq!(best.name, "h264_vaapi");
     }
 
@@ -237,8 +237,16 @@ mod tests {
             make_encoder("h264_nvenc", HwAccelType::Nvenc, false),
             make_encoder("libx264", HwAccelType::Software, true),
         ];
-        let best = select_best_encoder(&encoders);
+        let best = select_best_encoder(&encoders).unwrap();
         assert_eq!(best.name, "libx264");
+    }
+
+    #[test]
+    fn missing_or_unavailable_encoders_return_an_error() {
+        assert!(select_best_encoder(&[]).is_err());
+        assert!(
+            select_best_encoder(&[make_encoder("libx264", HwAccelType::Software, false)]).is_err()
+        );
     }
 
     #[test]
