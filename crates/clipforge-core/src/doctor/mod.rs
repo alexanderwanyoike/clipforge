@@ -79,28 +79,38 @@ async fn check_os() -> DiagnosticCheck {
 }
 
 async fn check_display_server() -> DiagnosticCheck {
-    let display = std::env::var("DISPLAY").ok();
-    let wayland = std::env::var("WAYLAND_DISPLAY").ok();
-
-    let (status, detail, rec) = match (&display, &wayland) {
-        (Some(d), _) => (CheckStatus::Pass, format!("X11 (DISPLAY={d})"), None),
-        (None, Some(w)) => (
-            CheckStatus::Warn,
-            format!("Wayland only (WAYLAND_DISPLAY={w})"),
-            Some("X11 capture is the primary path. Consider running under XWayland.".to_string()),
-        ),
-        _ => (
+    use crate::capture::{current_backend, wayland::check_dependencies, CaptureBackend};
+    let (status, detail, recommendation) = match current_backend() {
+        Ok(CaptureBackend::Wayland) => {
+            let result = async {
+                check_dependencies().await.map_err(|e| e.to_string())?;
+                let portal = ashpd::desktop::screencast::Screencast::new()
+                    .await
+                    .map_err(|e| e.to_string())?;
+                portal
+                    .available_source_types()
+                    .await
+                    .map_err(|e| e.to_string())?;
+                Ok::<_, String>(())
+            }
+            .await;
+            match result {
+                Ok(()) => (CheckStatus::Pass, "Wayland — ScreenCast portal and PipeWire capture available".into(), Some("Choose a screen/window in the desktop sharing dialog when starting capture.".into())),
+                Err(error) => (CheckStatus::Fail, "Wayland capture dependencies unavailable".into(), Some(error)),
+            }
+        }
+        Ok(CaptureBackend::X11) => (CheckStatus::Pass, "X11 capture".into(), None),
+        Err(_) => (
             CheckStatus::Fail,
-            "No display server detected".to_string(),
-            Some("ClipForge requires X11 or Wayland with XWayland".to_string()),
+            "No display server detected".into(),
+            Some("Run ClipForge in a graphical X11 or Wayland session.".into()),
         ),
     };
-
     DiagnosticCheck {
-        name: "Display Server".to_string(),
+        name: "Display Server".into(),
         status,
         detail,
-        recommendation: rec,
+        recommendation,
     }
 }
 

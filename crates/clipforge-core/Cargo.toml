@@ -16,4 +16,6 @@ uuid = { workspace = true }
 directories = "6"
 tempfile = "3"
 rusqlite = { version = "0.32", features = ["bundled"] }
+ashpd = { version = "0.11", default-features = false, features = ["tokio"] }
 libc = "0.2"
+futures-util = { version = "0.3", default-features = false, features = ["std"] }

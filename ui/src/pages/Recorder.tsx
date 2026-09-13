@@ -35,7 +35,7 @@ export default function Recorder() {
 
         <div class="record-status">
           <Show when={isIdle()}>Click to start recording</Show>
-          <Show when={state().status === "Starting"}>Waiting for capture to start. Click again to cancel.</Show>
+          <Show when={state().status === "Starting"}>Choose a source in the sharing dialog, or click again to cancel.</Show>
           <Show when={isRecording()}>Recording</Show>
           <Show when={state().status === "Stopping"}>Stopping...</Show>
         </div>
