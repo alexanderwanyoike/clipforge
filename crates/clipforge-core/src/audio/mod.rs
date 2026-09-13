@@ -1,7 +1,7 @@
 use crate::error::{Error, Result};
+use crate::process::host_command;
 use serde::{Deserialize, Serialize};
 use std::process::Stdio;
-use tokio::process::Command;
 use tracing::debug;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,7 +23,7 @@ pub enum AudioSourceType {
 /// (e.g. "WH-CH520" instead of `bluez_output.E8_9E_13_A3_79_AF.1.monitor`).
 /// Falls back to the raw PulseAudio name if a description isn't available.
 pub async fn list_audio_sources() -> Result<Vec<AudioSource>> {
-    let output = Command::new("pactl")
+    let output = host_command("pactl")
         .args(["list", "sources"])
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -111,7 +111,7 @@ pub async fn resolve_audio_source(source: &str) -> Result<String> {
         return Ok(source.to_string());
     }
 
-    let output = Command::new("pactl")
+    let output = host_command("pactl")
         .args(["get-default-sink"])
         .stdout(Stdio::piped())
         .stderr(Stdio::null())

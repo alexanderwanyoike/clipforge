@@ -1,6 +1,6 @@
+use crate::process::host_command;
 use serde::{Deserialize, Serialize};
 use std::process::Stdio;
-use tokio::process::Command;
 use tracing::{debug, info};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -96,7 +96,7 @@ async fn find_vaapi_devices() -> Vec<String> {
 
 /// Test VA-API encoder with a 1-frame encode
 async fn test_vaapi_encoder(device: &str) -> bool {
-    let result = Command::new("ffmpeg")
+    let result = host_command("ffmpeg")
         .args([
             "-y",
             "-loglevel",
@@ -141,7 +141,7 @@ async fn test_vaapi_encoder(device: &str) -> bool {
 
 /// Test NVENC encoder
 async fn test_nvenc_encoder() -> bool {
-    let result = Command::new("ffmpeg")
+    let result = host_command("ffmpeg")
         .args([
             "-y",
             "-loglevel",
@@ -171,7 +171,7 @@ async fn test_nvenc_encoder() -> bool {
 
 /// Test QSV encoder
 async fn test_qsv_encoder() -> bool {
-    let result = Command::new("ffmpeg")
+    let result = host_command("ffmpeg")
         .args([
             "-y",
             "-loglevel",

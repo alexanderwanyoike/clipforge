@@ -10,13 +10,13 @@ function formatTime(seconds: number): string {
 }
 
 export default function Recorder() {
-  const { state, timer, replayActive, toggleRecord, toggleReplay, saveReplay } =
+  const { state, error, replayBusy, timer, replayActive, toggleRecord, toggleReplay, saveReplay } =
     useRecording();
 
   const isRecording = () => state().status === "Recording";
   const isIdle = () => state().status === "Idle";
   const isBusy = () =>
-    state().status === "Starting" || state().status === "Stopping";
+    state().status === "Stopping";
 
   return (
     <div style="display: flex; flex-direction: column; height: 100%">
@@ -35,10 +35,14 @@ export default function Recorder() {
 
         <div class="record-status">
           <Show when={isIdle()}>Click to start recording</Show>
-          <Show when={state().status === "Starting"}>Starting...</Show>
+          <Show when={state().status === "Starting"}>Waiting for capture to start. Click again to cancel.</Show>
           <Show when={isRecording()}>Recording</Show>
           <Show when={state().status === "Stopping"}>Stopping...</Show>
         </div>
+
+        <Show when={error()}>
+          <div role="alert" style="color: var(--danger, #f87171); max-width: 640px; white-space: pre-wrap; padding: 12px">{error()}</div>
+        </Show>
 
         <Show when={state().file_path}>
           <div class="record-file">{state().file_path}</div>
@@ -49,6 +53,8 @@ export default function Recorder() {
         <button
           class={`toggle ${replayActive() ? "active" : ""}`}
           onClick={toggleReplay}
+          disabled={replayBusy()}
+          aria-label="Toggle replay buffer"
         />
         <span class="replay-label">
           Replay Buffer {replayActive() ? "(Active)" : "(Off)"}

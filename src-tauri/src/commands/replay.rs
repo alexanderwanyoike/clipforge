@@ -1,77 +1,35 @@
 use crate::state::AppState;
-use clipforge_core::capture::x11::create_capture_source;
-use clipforge_core::encode::ffmpeg::build_replay_command;
-use clipforge_core::encode::hw_probe::select_best_encoder;
-use clipforge_core::process::FfmpegProcess;
-use clipforge_core::replay::ring::ReplayRing;
-use clipforge_core::replay::save::save_replay;
+use clipforge_core::{
+    encode::hw_probe::select_best_encoder,
+    recording::{RecordingDestination, RecordingRequest, RecordingStatus},
+    replay::{ring::ReplayRing, save::save_replay},
+};
 use tauri::{AppHandle, Emitter, State};
-use tracing::{error, info};
+use tracing::info;
 
 #[tauri::command]
-pub async fn toggle_replay_buffer(
-    app: AppHandle,
-    state: State<'_, AppState>,
-) -> Result<bool, String> {
-    let mut replay = state.replay.lock().await;
-
-    if replay.active {
-        // Stop replay buffer
-        if let Some(ref mut process) = replay.process {
-            let _ = process.stop_graceful().await;
-        }
-        if let Some(ref ring) = replay.ring {
-            let _ = ring.cleanup();
-        }
-        replay.process = None;
-        replay.ring = None;
-        replay.active = false;
-
-        let _ = app.emit("replay-state-changed", false);
-        info!("replay buffer stopped");
-        Ok(false)
-    } else {
-        // Start replay buffer
-        let config = state.config.read().await;
-        let encoders = state.encoders.read().await;
-
-        if encoders.is_empty() {
-            return Err("No encoders available".to_string());
-        }
-
-        let encoder = select_best_encoder(&encoders).map_err(|error| error.to_string())?;
-        let source = create_capture_source(&config)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        // Ensure cache directory
-        std::fs::create_dir_all(&config.paths.replay_cache_dir).map_err(|e| e.to_string())?;
-
-        let ring = ReplayRing::new(
-            &config.paths.replay_cache_dir,
-            config.replay.segment_secs,
-            config.replay.max_segments,
-        );
-        ring.cleanup().map_err(|e| e.to_string())?;
-
-        let args = build_replay_command(&config, encoder, &source).await;
-
-        match FfmpegProcess::spawn(args).await {
-            Ok(process) => {
-                replay.process = Some(process);
-                replay.ring = Some(ring);
-                replay.active = true;
-
-                let _ = app.emit("replay-state-changed", true);
-                info!("replay buffer started");
-                Ok(true)
-            }
-            Err(e) => {
-                error!(error = %e, "failed to start replay buffer");
-                Err(e.to_string())
-            }
-        }
+pub async fn toggle_replay_buffer(state: State<'_, AppState>) -> Result<bool, String> {
+    if state.replay.snapshot().status != RecordingStatus::Idle {
+        state.replay.stop().await.map_err(|e| e.to_string())?;
+        return Ok(false);
     }
+    let config = state.config.read().await.clone();
+    let encoders = state.encoders.read().await;
+    let encoder = select_best_encoder(&encoders)
+        .map_err(|e| e.to_string())?
+        .clone();
+    drop(encoders);
+    let destination = RecordingDestination::replay(&config);
+    state
+        .replay
+        .start(RecordingRequest {
+            config,
+            encoder,
+            destination,
+        })
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(true)
 }
 
 #[tauri::command]
@@ -80,14 +38,21 @@ pub async fn save_replay_clip(
     state: State<'_, AppState>,
     seconds: Option<u32>,
 ) -> Result<String, String> {
-    let replay = state.replay.lock().await;
+    let replay = state.replay.snapshot();
 
-    if !replay.active {
+    if replay.status != RecordingStatus::Recording {
         return Err("Replay buffer is not active".to_string());
     }
 
-    let ring = replay.ring.as_ref().ok_or("No replay ring")?;
-    let config = state.config.read().await;
+    let ring = match replay.destination {
+        Some(RecordingDestination::Replay {
+            directory,
+            segment_secs,
+            max_segments,
+        }) => ReplayRing::new(&directory, segment_secs, max_segments),
+        _ => return Err("Replay destination is unavailable".into()),
+    };
+    let config = state.config.read().await.clone();
 
     let duration = seconds.unwrap_or(30);
     let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
@@ -96,7 +61,7 @@ pub async fn save_replay_clip(
 
     std::fs::create_dir_all(&config.paths.replays_dir).map_err(|e| e.to_string())?;
 
-    let result = save_replay(ring, duration, &output_path)
+    let result = save_replay(&ring, duration, &output_path)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -109,6 +74,6 @@ pub async fn save_replay_clip(
 
 #[tauri::command]
 pub async fn get_replay_status(state: State<'_, AppState>) -> Result<bool, String> {
-    let replay = state.replay.lock().await;
-    Ok(replay.active)
+    let replay = state.replay.snapshot();
+    Ok(replay.status == RecordingStatus::Recording)
 }
