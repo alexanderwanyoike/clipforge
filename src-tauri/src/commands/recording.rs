@@ -40,7 +40,13 @@ pub async fn start_recording(app: AppHandle, state: State<'_, AppState>) -> Resu
         return Err("No encoders available. Run encoder probe first.".to_string());
     }
 
-    let encoder = select_best_encoder(&encoders);
+    let encoder = match select_best_encoder(&encoders) {
+        Ok(encoder) => encoder,
+        Err(error) => {
+            recorder.status = RecordingStatus::Idle;
+            return Err(error.to_string());
+        }
+    };
     let source = create_capture_source(&config)
         .await
         .map_err(|e| e.to_string())?;

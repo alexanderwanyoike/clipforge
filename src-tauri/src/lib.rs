@@ -1,3 +1,7 @@
+#![cfg_attr(
+    not(test),
+    deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)
+)]
 mod commands;
 mod state;
 mod tray;
@@ -29,7 +33,7 @@ pub fn run() {
 
     let app_state = AppState::new(config);
 
-    tauri::Builder::default()
+    let result = tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
@@ -99,6 +103,8 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .run(tauri::generate_context!());
+    if let Err(error) = result {
+        tracing::error!(%error, "could not run ClipForge");
+    }
 }
