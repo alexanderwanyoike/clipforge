@@ -1,6 +1,6 @@
+use crate::process::host_command;
 use serde::{Deserialize, Serialize};
 use std::process::Stdio;
-use tokio::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticReport {
@@ -268,7 +268,7 @@ async fn check_disk_space() -> DiagnosticCheck {
 }
 
 async fn run_command(cmd: &str, args: &[&str]) -> std::result::Result<String, ()> {
-    let output = Command::new(cmd)
+    let output = host_command(cmd)
         .args(args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

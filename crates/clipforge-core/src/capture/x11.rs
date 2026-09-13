@@ -1,8 +1,8 @@
 use crate::capture::CaptureSource;
 use crate::config::{CaptureMode, Config};
 use crate::error::{Error, Result};
+use crate::process::host_command;
 use std::process::Stdio;
-use tokio::process::Command;
 use tracing::debug;
 
 /// Get the current X11 display string
@@ -13,7 +13,7 @@ pub fn get_display() -> Result<String> {
 /// Get screen resolution via xdpyinfo or xrandr
 pub async fn get_screen_resolution() -> Result<(u32, u32)> {
     // Try xdpyinfo first
-    let output = Command::new("xdpyinfo")
+    let output = host_command("xdpyinfo")
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .output()
@@ -38,7 +38,7 @@ pub async fn get_screen_resolution() -> Result<(u32, u32)> {
     }
 
     // Fallback to xrandr
-    let output = Command::new("xrandr")
+    let output = host_command("xrandr")
         .arg("--current")
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -111,7 +111,7 @@ pub async fn create_capture_source(config: &Config) -> Result<CaptureSource> {
 
 /// Use xdotool to let user click a window to select it
 async fn select_window() -> Result<String> {
-    let output = Command::new("xdotool")
+    let output = host_command("xdotool")
         .arg("selectwindow")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

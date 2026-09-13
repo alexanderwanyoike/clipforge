@@ -39,6 +39,9 @@ jobs:
       - name: Tests
         run: cargo test --workspace
 
+      - name: FFmpeg device input and failure cleanup
+        run: cargo test -p clipforge-core process_media -- --ignored
+
       - name: Finite export completion
         run: cargo test -p clipforge-core short_export_completes -- --ignored
 

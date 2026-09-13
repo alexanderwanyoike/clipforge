@@ -70,6 +70,18 @@ pub fn run() {
                 tracing::warn!(error = %e, "failed to setup tray");
             }
 
+            let state = app.state::<AppState>();
+            commands::recording::forward_events(
+                app.handle().clone(),
+                state.recorder.subscribe(),
+                false,
+            );
+            commands::recording::forward_events(
+                app.handle().clone(),
+                state.replay.subscribe(),
+                true,
+            );
+
             // Probe encoders and init library in background
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {

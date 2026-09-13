@@ -10,14 +10,14 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use clipforge_core::audio::list_audio_sources;
-use clipforge_core::capture::x11::create_capture_source;
 use clipforge_core::config::Config;
 use clipforge_core::doctor::run_diagnostics;
-use clipforge_core::encode::ffmpeg::{build_recording_command, build_replay_command};
 use clipforge_core::encode::hw_probe::{probe_encoders, select_best_encoder};
 use clipforge_core::export::pipeline::{ExportJob, ExportPipeline};
 use clipforge_core::export::presets::ExportPreset;
-use clipforge_core::process::FfmpegProcess;
+use clipforge_core::recording::{
+    linux::LinuxRecordingBackend, RecordingDestination, RecordingRequest, RecordingService,
+};
 use clipforge_core::replay::ring::ReplayRing;
 use clipforge_core::replay::save::save_replay;
 use std::path::PathBuf;
@@ -117,12 +117,17 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::Record {
-            mode: _,
+            mode,
             fps,
             encoder,
             out,
         } => {
             config.recording.fps = fps;
+            config.recording.capture_mode = match mode.as_str() {
+                "screen" => clipforge_core::config::CaptureMode::Fullscreen,
+                "window" => clipforge_core::config::CaptureMode::Window { id: None },
+                _ => anyhow::bail!("Unknown capture mode: {mode}. Use screen or window"),
+            };
 
             let encoders = probe_encoders().await;
             let enc = if encoder == "auto" {
@@ -132,53 +137,36 @@ async fn main() -> Result<()> {
                     .iter()
                     .find(|e| e.name == encoder && e.available)
                     .ok_or_else(|| anyhow::anyhow!("Requested encoder is unavailable: {encoder}"))?
-            };
-
-            let source = create_capture_source(&config).await?;
+            }
+            .clone();
             let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
             let output = out.unwrap_or_else(|| PathBuf::from(format!("recording_{timestamp}.mkv")));
-
-            let args = build_recording_command(&config, enc, &source, &output).await;
-            println!("Recording to: {}", output.display());
             println!(
-                "Encoder: {} | FPS: {} | Press Ctrl+C to stop",
-                enc.name, fps
+                "Starting capture to {}. Press Ctrl+C to stop or cancel the picker.",
+                output.display()
             );
-
-            let mut process = FfmpegProcess::spawn(args).await?;
-
-            // Wait for Ctrl+C
-            tokio::signal::ctrl_c().await?;
-
-            println!("\nStopping recording...");
-            process.stop_graceful().await?;
-            println!("Saved: {}", output.display());
+            let request = RecordingRequest {
+                config,
+                encoder: enc,
+                destination: RecordingDestination::File(output.clone()),
+            };
+            if run_recording(request).await? {
+                println!("Saved: {}", output.display());
+            }
         }
 
         Commands::Replay { seconds } => {
             config.replay.duration_secs = seconds;
-
             let encoders = probe_encoders().await;
-            let enc = select_best_encoder(&encoders)?;
-            let source = create_capture_source(&config).await?;
-
-            let ring = ReplayRing::new(
-                &config.paths.replay_cache_dir,
-                config.replay.segment_secs,
-                config.replay.max_segments,
-            );
-            ring.cleanup()?;
-
-            let args = build_replay_command(&config, enc, &source).await;
-            println!("Replay buffer active ({seconds} seconds)");
-            println!("Press Ctrl+C to stop");
-
-            let mut process = FfmpegProcess::spawn(args).await?;
-            tokio::signal::ctrl_c().await?;
-
-            println!("\nStopping replay buffer...");
-            process.stop_graceful().await?;
-            ring.cleanup()?;
+            let encoder = select_best_encoder(&encoders)?.clone();
+            let destination = RecordingDestination::replay(&config);
+            println!("Starting replay buffer. Press Ctrl+C to stop or cancel the picker.");
+            run_recording(RecordingRequest {
+                config,
+                encoder,
+                destination,
+            })
+            .await?;
         }
 
         Commands::SaveReplay { seconds, out } => {
@@ -278,4 +266,22 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+async fn run_recording(request: RecordingRequest) -> Result<bool> {
+    let service = RecordingService::new(LinuxRecordingBackend);
+    tokio::select! {
+        result = service.start(request) => result?,
+        signal = tokio::signal::ctrl_c() => {
+            signal?;
+            let _ = service.stop().await;
+            return Ok(false);
+        }
+    }
+    println!("Capture started.");
+    tokio::select! {
+        result = service.wait_finished() => result?,
+        signal = tokio::signal::ctrl_c() => { signal?; service.stop().await?; }
+    }
+    Ok(true)
 }

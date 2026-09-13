@@ -1,170 +1,84 @@
-use crate::state::{AppState, RecordingStatus};
-use clipforge_core::capture::x11::create_capture_source;
-use clipforge_core::encode::ffmpeg::build_recording_command;
-use clipforge_core::encode::hw_probe::select_best_encoder;
-use clipforge_core::process::FfmpegProcess;
-use serde::Serialize;
+use crate::state::AppState;
+use clipforge_core::{
+    encode::hw_probe::select_best_encoder,
+    recording::{RecordingDestination, RecordingRequest, RecordingSnapshot, RecordingStatus},
+};
 use tauri::{AppHandle, Emitter, State};
-use tracing::{error, info};
-
-#[derive(Debug, Clone, Serialize)]
-pub struct RecordingState {
-    pub status: RecordingStatus,
-    pub elapsed_secs: u64,
-    pub file_path: Option<String>,
-}
+use tracing::error;
 
 #[tauri::command]
-pub async fn start_recording(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    let mut recorder = state.recorder.lock().await;
-
-    if recorder.status != RecordingStatus::Idle {
-        return Err("Already recording".to_string());
-    }
-
-    recorder.status = RecordingStatus::Starting;
-    let _ = app.emit(
-        "recording-state-changed",
-        RecordingState {
-            status: RecordingStatus::Starting,
-            elapsed_secs: 0,
-            file_path: None,
-        },
-    );
-
-    let config = state.config.read().await;
+pub async fn start_recording(state: State<'_, AppState>) -> Result<(), String> {
+    let config = state.config.read().await.clone();
     let encoders = state.encoders.read().await;
-
-    if encoders.is_empty() {
-        recorder.status = RecordingStatus::Idle;
-        return Err("No encoders available. Run encoder probe first.".to_string());
-    }
-
-    let encoder = match select_best_encoder(&encoders) {
-        Ok(encoder) => encoder,
-        Err(error) => {
-            recorder.status = RecordingStatus::Idle;
-            return Err(error.to_string());
-        }
-    };
-    let source = create_capture_source(&config)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    // Generate output filename
+    let encoder = select_best_encoder(&encoders)
+        .map_err(|e| e.to_string())?
+        .clone();
+    drop(encoders);
     let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
-    let filename = format!("recording_{}.{}", timestamp, config.recording.container);
-    let output_path = config.paths.recordings_dir.join(&filename);
-
-    // Ensure recording directory exists
-    std::fs::create_dir_all(&config.paths.recordings_dir).map_err(|e| e.to_string())?;
-
-    let args = build_recording_command(&config, encoder, &source, &output_path).await;
-
-    info!(output = %output_path.display(), "starting recording");
-
-    match FfmpegProcess::spawn(args).await {
-        Ok(process) => {
-            recorder.process = Some(process);
-            recorder.status = RecordingStatus::Recording;
-            recorder.output_path = Some(output_path.clone());
-            recorder.start_time = Some(std::time::Instant::now());
-
-            let _ = app.emit(
-                "recording-state-changed",
-                RecordingState {
-                    status: RecordingStatus::Recording,
-                    elapsed_secs: 0,
-                    file_path: Some(output_path.to_string_lossy().to_string()),
-                },
-            );
-
-            // Start timer task
-            let app_handle = app.clone();
-            let recorder_state = state.recorder.clone();
-            tokio::spawn(async move {
-                let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-                loop {
-                    interval.tick().await;
-                    let rec = recorder_state.lock().await;
-                    if rec.status != RecordingStatus::Recording {
-                        break;
-                    }
-                    let elapsed = rec.start_time.map(|t| t.elapsed().as_secs()).unwrap_or(0);
-                    let _ = app_handle.emit("recording-timer", elapsed);
-                }
-            });
-
-            Ok(())
-        }
-        Err(e) => {
-            recorder.status = RecordingStatus::Idle;
-            error!(error = %e, "failed to start recording");
-            Err(e.to_string())
-        }
-    }
+    let output = config.paths.recordings_dir.join(format!(
+        "recording_{}.{}",
+        timestamp, config.recording.container
+    ));
+    state
+        .recorder
+        .start(RecordingRequest {
+            config,
+            encoder,
+            destination: RecordingDestination::File(output),
+        })
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn stop_recording(app: AppHandle, state: State<'_, AppState>) -> Result<String, String> {
-    let mut recorder = state.recorder.lock().await;
-
-    if recorder.status != RecordingStatus::Recording {
-        return Err("Not recording".to_string());
-    }
-
-    recorder.status = RecordingStatus::Stopping;
-    let _ = app.emit(
-        "recording-state-changed",
-        RecordingState {
-            status: RecordingStatus::Stopping,
-            elapsed_secs: 0,
-            file_path: recorder
-                .output_path
-                .as_ref()
-                .map(|p| p.to_string_lossy().to_string()),
-        },
-    );
-
-    if let Some(ref mut process) = recorder.process {
-        process.stop_graceful().await.map_err(|e| e.to_string())?;
-    }
-
-    let output_path = recorder.output_path.take();
-    recorder.process = None;
-    recorder.status = RecordingStatus::Idle;
-    recorder.start_time = None;
-
-    let path_str = output_path
-        .as_ref()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_default();
-
-    let _ = app.emit(
-        "recording-state-changed",
-        RecordingState {
-            status: RecordingStatus::Idle,
-            elapsed_secs: 0,
-            file_path: None,
-        },
-    );
-
-    // Index the recording in the library
-    if let Some(ref path) = output_path {
-        let state_clone = state.inner().library.clone();
-        let config = state.config.read().await;
-        let thumb_dir = config.paths.thumbnails_dir.clone();
-        let path = path.clone();
-
+pub async fn stop_recording(state: State<'_, AppState>) -> Result<String, String> {
+    let output = state.recorder.snapshot().file_path;
+    state.recorder.stop().await.map_err(|e| e.to_string())?;
+    if let Some(path) = output.as_ref() {
+        let library = state.library.clone();
+        let thumbnails = state.config.read().await.paths.thumbnails_dir.clone();
+        let path = std::path::PathBuf::from(path);
         tokio::spawn(async move {
-            if let Err(e) = index_recording(&state_clone, &path, &thumb_dir).await {
-                error!(error = %e, "failed to index recording");
+            if let Err(error) = index_recording(&library, &path, &thumbnails).await {
+                error!(%error, "failed to index recording");
             }
         });
     }
+    Ok(output.unwrap_or_default())
+}
 
-    info!(path = %path_str, "recording stopped");
-    Ok(path_str)
+#[tauri::command]
+pub async fn get_recording_status(state: State<'_, AppState>) -> Result<RecordingSnapshot, String> {
+    Ok(state.recorder.snapshot())
+}
+
+/// Translate service snapshots into the existing UI events. Both recording
+/// and replay use the same service; this adapter contains no process supervision.
+pub fn forward_events(
+    app: AppHandle,
+    mut snapshots: tokio::sync::watch::Receiver<RecordingSnapshot>,
+    replay: bool,
+) {
+    tauri::async_runtime::spawn(async move {
+        loop {
+            let snapshot = snapshots.borrow_and_update().clone();
+            if replay {
+                let _ = app.emit(
+                    "replay-state-changed",
+                    snapshot.status == RecordingStatus::Recording,
+                );
+            } else {
+                let _ = app.emit("recording-state-changed", &snapshot);
+                let _ = app.emit("recording-timer", snapshot.elapsed_secs);
+            }
+            if let Some(error) = snapshot.error {
+                let _ = app.emit("recording-error", error);
+            }
+            if snapshots.changed().await.is_err() {
+                break;
+            }
+        }
+    });
 }
 
 async fn index_recording(
@@ -216,22 +130,4 @@ async fn index_recording(
     }
 
     Ok(())
-}
-
-#[tauri::command]
-pub async fn get_recording_status(state: State<'_, AppState>) -> Result<RecordingState, String> {
-    let recorder = state.recorder.lock().await;
-    let elapsed = recorder
-        .start_time
-        .map(|t| t.elapsed().as_secs())
-        .unwrap_or(0);
-
-    Ok(RecordingState {
-        status: recorder.status,
-        elapsed_secs: elapsed,
-        file_path: recorder
-            .output_path
-            .as_ref()
-            .map(|p| p.to_string_lossy().to_string()),
-    })
 }

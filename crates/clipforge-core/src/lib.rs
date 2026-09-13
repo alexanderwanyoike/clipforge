@@ -17,4 +17,5 @@ pub mod export;
 pub mod hotkeys;
 pub mod library;
 pub mod process;
+pub mod recording;
 pub mod replay;
